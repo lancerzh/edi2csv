@@ -211,7 +211,7 @@ class EdiDocNode :
     def getValue(self, location):
         [hn, lineHeader, position]  = location.split('/');
         hierarchs = hn.split(':');
-        elementPos = int(position)
+        elementPos = int(position.split('-')[0])
         
         if hierarchs[0] == self.name : # TODO HL condition   or (len(hierarchs) == 2 and hierarchs[1] == self.hlCode) :
             for seg in self.body :
@@ -219,8 +219,11 @@ class EdiDocNode :
                     elements = seg.split(__ELEMENT_SEPARATOR__);
                     if elementPos < len(elements):
                         return elements[elementPos];
-        return None;
-    
+        elif self.parent == None :
+            return '';
+        else :
+            return self.parent.getValue(location);
+            
     def dump(self):
         segs = [];
         segs += self.body;

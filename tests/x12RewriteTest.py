@@ -68,20 +68,19 @@ class TestEdiData(unittest.TestCase):
         self.assertEqual(1, len(ts.getLoops('LX')));
 
     
-    def testGetParent(self):
+    def testParent(self):
         self.assertTrue('0500' > '0300')
-        
-        isaNode = x12edi.EdiDocNode(['ISA'], None)
-        gsNode = x12edi.EdiDocNode(['GS'], isaNode)
-        stNode1 = x12edi.EdiDocNode(['ST'], gsNode)
-        stNode2 = x12edi.EdiDocNode(['ST'], gsNode)
-        hlNode1 = x12edi.EdiDocNode(['HL*1**20*~'], stNode2)
-        clmNode1 = x12edi.EdiDocNode(['CLM'], hlNode1)
+        edi = x12edi.createEdi(self.x12ediData);
+        lx1 = edi.getLoops('LX')[1];
+        self.assertEqual('CLM', lx1.parent.name)
+        self.assertEqual('HL', lx1.parent.parent.name)
+        self.assertEqual('HL', lx1.parent.parent.parent.name)
+        self.assertEqual('HL', lx1.parent.parent.parent.parent.name)
+        self.assertEqual('ST', lx1.parent.parent.parent.parent.parent.name)
+        self.assertEqual('GS', lx1.parent.parent.parent.parent.parent.parent.name)
+        self.assertEqual('ISA', lx1.parent.parent.parent.parent.parent.parent.parent.name)
+        self.assertIsNone(lx1.parent.parent.parent.parent.parent.parent.parent.parent)
 
-        self.assertEqual('GS', x12edi.getParent('ST', stNode1).name)
-        self.assertEqual('ST', x12edi.getParent('HL*2*1*22*~', stNode1).name)
-        self.assertEqual('HL', x12edi.getParent('CLM', hlNode1).name)
-        self.assertEqual('CLM', x12edi.getParent('LX', clmNode1).name)
         
     def testTraverse(self):
         ''' just print whole document, show the hierarch
