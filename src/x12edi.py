@@ -49,20 +49,7 @@ def getHierarch(name):
 def getIdLocation(name):
     return __LOOP_HIERARCHICAL_DICT__[name][1];
 
-def getParent(loophead, parent):
-    elements = loophead.split(__ELEMENT_SEPARATOR__);
-    name = elements[0];
-    hlCode = '00';
-    if name == 'HL' :
-        hlCode = elements[03];
-    hierarchical = getHierarch(name);
 
-    if name == 'ISA' :
-        return None
-    elif hierarchical > parent.hierarchical or (hierarchical == parent.hierarchical and hlCode > parent.hlCode) :
-        return parent
-    return getParent(loophead, parent.parent)
-    
     
 
 class EdiDoc :
@@ -142,21 +129,24 @@ class EdiDoc :
                         lastLoop = loops[-1];
                     else :
                         lastLoop = transaction;
-                    parent = getParent(currentLoopLines[0], lastLoop);
+                    parent = lastLoop.getParent(currentLoopLines[0]);
                     aLoop = EdiDocNode(currentLoopLines, parent);
                     loops.append(aLoop);
                     currentLoopLines = [];
                     
             currentLoopLines.append(segment);
-        
-        if len(loops) > 0 :
-            lastLoop = loops[-1];
         else :
-            lastLoop = transaction;
-        parent = getParent(currentLoopLines[0], lastLoop);
-        aLoop = EdiDocNode(currentLoopLines, parent);
-        loops.append(aLoop);
+            if len(loops) > 0 :
+                lastLoop = loops[-1];
+            else :
+                lastLoop = transaction;
+            parent = lastLoop.getParent(currentLoopLines[0]);
+            aLoop = EdiDocNode(currentLoopLines, parent);
+            loops.append(aLoop);
         return loops;
+    
+
+    
     
     def getMatched(self, conditions):
         
@@ -268,6 +258,20 @@ class EdiDocNode :
             queue += node.getLoops(loopName, subHierach);
         return queue
 
+    def getParent(self, loophead):
+        elements = loophead.split(__ELEMENT_SEPARATOR__);
+        name = elements[0];
+        hlCode = '00';
+        if name == 'HL' :
+            hlCode = elements[03];
+        hierarchical = getHierarch(name);
+    
+        if name == 'ISA' :
+            return None
+        elif hierarchical > self.hierarchical or (hierarchical == self.hierarchical and hlCode > self.hlCode) :
+            return self
+        return self.parent.getParent(loophead)
+    
     @property
     def header(self):
         return self.body[0];
