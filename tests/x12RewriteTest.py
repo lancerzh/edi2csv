@@ -6,6 +6,8 @@ Created on May 20, 2015
 import unittest;
 
 import x12edi;
+from x12edi import HierarchLocator;
+
 
 x12file = "extras/testdata/RHPPAI_0505151403_3.txt";
 
@@ -21,14 +23,34 @@ class TestEdiData(unittest.TestCase):
     def tearDown(self):
         pass
     
-    def testUnpack(self):
+    def testHierarchLocator(self):
+        self.assertEqual(HierarchLocator('HL'), HierarchLocator('HL'));
+        self.assertEqual(HierarchLocator('HL'), HierarchLocator('HL:20'));
+        self.assertTrue(HierarchLocator('HL:20') < HierarchLocator('HL:22'));
+        self.assertTrue(HierarchLocator('HL:22') < HierarchLocator('HL:23'));
+
+        self.assertTrue(HierarchLocator('ISA') < HierarchLocator('GS'));
+        self.assertTrue(HierarchLocator('GS') < HierarchLocator('ST'));
+
+        self.assertTrue(HierarchLocator('ST') < HierarchLocator('HL'));
+        self.assertTrue(HierarchLocator('HL') < HierarchLocator('CLM'));
+        self.assertTrue(HierarchLocator('HL:23') < HierarchLocator('CLM'));
+        self.assertTrue(HierarchLocator('CLM') < HierarchLocator('LX'));
+
+
+
+
+    
+    def testEnvelopes(self):
+        ''' include ISA, GS, ST three envelopes
+        '''
         edi = x12edi.createEdi(self.x12ediData);
         self.assertEqual("ISA*00*1         *00*1         *ZZ*TRIZETTOCE     *30*RELIANT        *150505*1405*^*00501*000004221*0*P*:", edi.isaNode.header);
         self.assertEqual("IEA*1*000004221", edi.isaNode.tail[0]);
         self.assertEqual("GS*HC*TRIZETTOCE*RELIANT*20150505*1405*3994734*X*005010X223A2", edi.gsNode.header);
         self.assertEqual("GE*13*3994734", edi.gsNode.tail[0]);
 
-        allTs = edi.getLoops('ST');
+        allTs = edi.fetchSubNodes('ST');
         ts = allTs[12]
 
         self.assertEqual('ST*837*1013*005010X223A2', ts.header);
@@ -42,36 +64,40 @@ class TestEdiData(unittest.TestCase):
         self.assertEqual(1, len(ts.children));
         
 
-    def testGetLoops(self):
+    def testGetChildren(self):
+        ''' get children by hierarch level
+        '''
         edi = x12edi.createEdi(self.x12ediData);
         
-        self.assertEqual(1, len(edi.getLoops('ISA')));
-        self.assertEqual(1, len(edi.getLoops('GS')));
-        self.assertEqual(13, len(edi.getLoops('ST')));
-        self.assertEqual(13, len(edi.getLoops('HL', '20')));
-        self.assertEqual(13, len(edi.getLoops('HL', '22')));
-        self.assertEqual(10, len(edi.getLoops('HL', '23')));
-        self.assertEqual(13, len(edi.getLoops('CLM')));
-        self.assertEqual(55, len(edi.getLoops('LX')));
+        self.assertEqual(1, len(edi.fetchSubNodes('ISA')));
+        self.assertEqual(1, len(edi.fetchSubNodes('GS')));
+        self.assertEqual(13, len(edi.fetchSubNodes('ST')));
+        self.assertEqual(13, len(edi.fetchSubNodes('HL:20')));
+        self.assertEqual(13, len(edi.fetchSubNodes('HL:22')));
+        self.assertEqual(10, len(edi.fetchSubNodes('HL:23')));
+        self.assertEqual(13, len(edi.fetchSubNodes('CLM')));
+        self.assertEqual(55, len(edi.fetchSubNodes('LX')));
         
-        ts = edi.getLoops('ST')[0];
-        self.assertEqual(1, len(ts.getLoops('HL', '20')));
-        self.assertEqual(1, len(ts.getLoops('HL', '22')));
-        self.assertEqual(1, len(ts.getLoops('HL', '23')));
-        self.assertEqual(1, len(ts.getLoops('CLM')));
-        self.assertEqual(9, len(ts.getLoops('LX')));
+        ts = edi.fetchSubNodes('ST')[0];
+        self.assertEqual(1, len(ts.fetchSubNodes('HL:20')));
+        self.assertEqual(1, len(ts.fetchSubNodes('HL:22')));
+        self.assertEqual(1, len(ts.fetchSubNodes('HL:23')));
+        self.assertEqual(1, len(ts.fetchSubNodes('CLM')));
+        self.assertEqual(9, len(ts.fetchSubNodes('LX')));
         
-        ts = edi.getLoops('ST')[12];
-        self.assertEqual(1, len(ts.getLoops('HL', '20')));
-        self.assertEqual(1, len(ts.getLoops('HL', '22')));
-        self.assertEqual(1, len(ts.getLoops('CLM')));
-        self.assertEqual(1, len(ts.getLoops('LX')));
+        ts = edi.fetchSubNodes('ST')[12];
+        self.assertEqual(1, len(ts.fetchSubNodes('HL:20')));
+        self.assertEqual(1, len(ts.fetchSubNodes('HL:22')));
+        self.assertEqual(1, len(ts.fetchSubNodes('CLM')));
+        self.assertEqual(1, len(ts.fetchSubNodes('LX')));
 
     
     def testParent(self):
+        ''' fatch parent
+        '''
         self.assertTrue('0500' > '0300')
         edi = x12edi.createEdi(self.x12ediData);
-        lx1 = edi.getLoops('LX')[1];
+        lx1 = edi.fetchSubNodes('LX')[1];
         self.assertEqual('CLM', lx1.parent.name)
         self.assertEqual('HL', lx1.parent.parent.name)
         self.assertEqual('HL', lx1.parent.parent.parent.name)
@@ -98,38 +124,17 @@ class TestEdiData(unittest.TestCase):
             print l;
         '''
         
-    def testMatchLoop(self):
-        lx1str = """LX*1
-SV2*0250**15*UN*1
-PWK*OZ*EL***AC*15
-DTP*472*D8*20150330
-K3*,0,7.5,0,0,0,0,0
-        """.strip();
-        edi = x12edi.createEdi(self.x12ediData);
-        """
-        for aLoop in edi.allLoops :
-            print aLoop.name, "/", aLoop.dataLines[0];
-            for l in aLoop.dataLines:
-                print "\t" + l
-        """
-        #self.assertEqual(13, len(edi.transactions));
-        #self.assertEqual(13, len(edi.allLoops));
-        conditions = [('LX/LX/01','1')]
-        lxLoop = edi.getMatched(conditions);
-        print lxLoop;
-        self.assertEqual(lx1str, '\n'.join(lxLoop.dump()));
-        pass
     
     def testNodeId(self):
         edi = x12edi.createEdi(self.x12ediData);
-        self.assertEqual('000004221', edi.getLoops('ISA')[0].id);
-        self.assertEqual('3994734', edi.getLoops('GS')[0].id);
-        self.assertEqual('1001', edi.getLoops('ST')[0].id);
-        self.assertEqual('1', edi.getLoops('HL', '20')[0].id);
-        self.assertEqual('2', edi.getLoops('HL', '22')[0].id);
-        self.assertEqual('3', edi.getLoops('HL', '23')[0].id);
-        self.assertEqual('134150427P00024', edi.getLoops('CLM')[0].id);
-        self.assertEqual('1', edi.getLoops('LX')[0].id);
+        self.assertEqual('000004221', edi.fetchSubNodes('ISA')[0].id);
+        self.assertEqual('3994734', edi.fetchSubNodes('GS')[0].id);
+        self.assertEqual('1001', edi.fetchSubNodes('ST')[0].id);
+        self.assertEqual('1', edi.fetchSubNodes('HL:20')[0].id);
+        self.assertEqual('2', edi.fetchSubNodes('HL:22')[0].id);
+        self.assertEqual('3', edi.fetchSubNodes('HL:23')[0].id);
+        self.assertEqual('134150427P00024', edi.fetchSubNodes('CLM')[0].id);
+        self.assertEqual('1', edi.fetchSubNodes('LX')[0].id);
 
 
     def testSplit(self):

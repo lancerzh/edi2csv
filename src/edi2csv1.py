@@ -30,7 +30,7 @@ print ', '.join(title);
 data = []
 row = []
 
-loops = edi.getLoops(eachby);
+loops = edi.fetchSubNodes(eachby);
 for loop in loops :
     for (fieldname, location) in fields :
         if len(location) > 0:

@@ -6,10 +6,6 @@ Created on May 18, 2015
 
 
 
-__LOOP_START_FLAGS__ = set(['ST', 'HL', 'CLM', 'LX']);
-__LOOP_NAME__ = set(['HL', 'CLM', 'LX']);
-__LOOP_END_FLAGS__ = set(['SE']);
-
 __SEGMENT_TERMINATION__ = '~'
 __ELEMENT_SEPARATOR__ = '*'
 __SUBELEMENT_SEPARATOR__ = ':'
@@ -17,24 +13,15 @@ __REPETITION_SEPARATOR__ = '^'
 
 __LINE_TAIL__ = '~\n'
 
-__LOOP_FLAGS__ = set(['ST', 'HL', 'CLM', 'LX']);
-
 # LOOP character: 'NAME':['HIERARCH', 'ID LOCATION']
-__LOOP_HIERARCHICAL_DICT__ = {'ISA':['0100', 'ISA/ISA/13'], 
+__LOOP_DEFINITION__ = {'ISA':['0100', 'ISA/ISA/13'], 
                               'GS':['0300', 'GS/GS/06'], 
                               'ST':['0500', 'ST/ST/02'],
                               'HL':['2000', 'HL/HL/01'],
                               'CLM':['2300', 'CLM/REF*D9/02'],
                               'LX':['2400', 'LX/LX/01']
                               };
-'''
-__LOOP_HIERARCHICAL_DICT__ = {'ISA':'0100', 
-                              'GS':'0300', 
-                              'ST':'0500', 
-                              'HL':'2000', 
-                              'CLM':'2300', 
-                              'LX':'2400'};
-'''
+
 def createEdi(edidata):
     if edidata.find(__LINE_TAIL__) < 0:
         orgEdidata = edidata.replace(__SEGMENT_TERMINATION__, '\n').splitlines();
@@ -44,10 +31,10 @@ def createEdi(edidata):
 
 
 def getHierarch(name):
-    return __LOOP_HIERARCHICAL_DICT__[name][0];
+    return __LOOP_DEFINITION__[name][0];
 
 def getIdLocation(name):
-    return __LOOP_HIERARCHICAL_DICT__[name][1];
+    return __LOOP_DEFINITION__[name][1];
 
 
     
@@ -98,7 +85,7 @@ class EdiDoc :
                 while True:
                     nextSeg = data[index];
                     firstElement = nextSeg.split(__ELEMENT_SEPARATOR__)[0]
-                    if firstElement in __LOOP_START_FLAGS__ :
+                    if firstElement in __LOOP_DEFINITION__.keys() :
                         break;
                     else :
                         currentTransactionData.append(data[index]);
@@ -120,7 +107,7 @@ class EdiDoc :
         lastLoop = transaction;
         for segment in loopsData:
             segName = segment.split(__ELEMENT_SEPARATOR__)[0];
-            if segName in __LOOP_FLAGS__ :
+            if segName in __LOOP_DEFINITION__.keys() :
                 # see if loop is end 
                 # if currentLoop has data and coming a new loop start flag
                 # it is a new loop
@@ -146,33 +133,18 @@ class EdiDoc :
         return loops;
     
 
-    
-    
-    def getMatched(self, conditions):
-        
-        for (segPattern, value) in conditions:
-            print segPattern, ":", value;
-            
-        # no need here
-        for loop in self.allLoops :
-            if loop.name == segPattern and loop.isMatch(conditions) :
-                return loop;
-        print "err: not found matched loop"
-        return EdiDocNode();
-
     def traverse(self):
         return self.isaNode.traverse();
     
-    def getLoops(self, loopName, subHierach = '00'):
-        return self.isaNode.getLoops(loopName, subHierach);
+    def fetchSubNodes(self, loopName):
+        return self.isaNode.fetchSubNodes(loopName);
     
 
 class EdiDocNode :
 
     def __init__(self, lines=[], parent=None):
         self.name = None
-        self.hierarchical = None;
-        self.hlCode = '00'
+        self.hierarch = None;
         
         self.children = []
         self.parent = parent;
@@ -187,11 +159,8 @@ class EdiDocNode :
             parent.children.append(self);
             self.deep = parent.deep + 1;
         if len(lines) > 0 :
-            elements = lines[0].split(__ELEMENT_SEPARATOR__);
-            self.name = elements[0];
-            self.hierarchical = getHierarch(self.name);
-            if self.name == 'HL' :
-                self.hlCode = elements[3];
+            self.hierarch = HierarchLocator(lines[0]);
+            self.name = self.hierarch.levelName;
             self.body = lines;
             self.id = self.getValue(getIdLocation(self.name))
 
@@ -203,7 +172,7 @@ class EdiDocNode :
         hierarchs = hn.split(':');
         elementPos = int(position.split('-')[0])
         
-        if hierarchs[0] == self.name : # TODO HL condition   or (len(hierarchs) == 2 and hierarchs[1] == self.hlCode) :
+        if hierarchs[0] == self.name : 
             for seg in self.body :
                 if seg.startswith(lineHeader) :
                     elements = seg.split(__ELEMENT_SEPARATOR__);
@@ -222,21 +191,6 @@ class EdiDocNode :
         segs += self.tail;
         return segs;
     
-    def isMatch(self, conditions):
-        #CLM/REF*D9/02 = csv:b             
-        #LX/LX/01 = csv:c
-
-        for (pattern, value) in conditions:
-            pattern = pattern.upper();
-            [patternName, segHeader, elementPos]  = pattern.split('/');
-            if patternName == self.name :
-                for l in self.body :
-                    elements = l.split(__ELEMENT_SEPARATOR__);
-                    if l.startswith(segHeader) and elements[int(elementPos)] == value :
-                        print l;
-                        print value;
-                        return True;
-        return False;
     
     def traverse(self):
         queue = [];
@@ -245,30 +199,23 @@ class EdiDocNode :
             queue += node.traverse();
         return queue
 
-
-    def isMyHierarch(self, loopName, subHierach='00'):
-        return loopName == self.name and (loopName != 'HL' or subHierach == self.hlCode);
-
-    def getLoops(self, loopName, subHierach = '00'):
+    
+    def fetchSubNodes(self, loopName):
+        locator =  HierarchLocator(loopName);
         queue = [];
-        if self.isMyHierarch(loopName, subHierach) :
+        if locator == self.hierarch :
             queue.append(self);
             return queue;
         for node in self.children :
-            queue += node.getLoops(loopName, subHierach);
+            queue += node.fetchSubNodes(loopName);
         return queue
 
     def getParent(self, loophead):
-        elements = loophead.split(__ELEMENT_SEPARATOR__);
-        name = elements[0];
-        hlCode = '00';
-        if name == 'HL' :
-            hlCode = elements[03];
-        hierarchical = getHierarch(name);
+        locator =  HierarchLocator(loophead);
     
-        if name == 'ISA' :
+        if locator.level == __LOOP_DEFINITION__['ISA'][0] : #  loop '0100' :
             return None
-        elif hierarchical > self.hierarchical or (hierarchical == self.hierarchical and hlCode > self.hlCode) :
+        elif locator > self.hierarch :
             return self
         return self.parent.getParent(loophead)
     
@@ -276,3 +223,33 @@ class EdiDocNode :
     def header(self):
         return self.body[0];
         
+class HierarchLocator:
+    __SEPARATOR__ = ':';
+    def __init__(self, locator):
+        self.locator = locator;
+        if locator.find(__ELEMENT_SEPARATOR__) > 0: # x12 edi loop line
+            words = locator.split(__ELEMENT_SEPARATOR__);
+            self.levelName = words[0];
+            self.level = __LOOP_DEFINITION__[self.levelName][0];
+            self.subLevel = None;
+            if self.level == '2000':  # HL Hierarch Level 
+                self.subLevel = words[03];
+        elif locator.find(HierarchLocator.__SEPARATOR__) > 0: # hierarch definition
+            words = locator.split(HierarchLocator.__SEPARATOR__);
+            self.levelName = words[0];
+            self.level = __LOOP_DEFINITION__[self.levelName][0];
+            self.subLevel = words[1];
+        else :
+            self.levelName = locator;
+            self.level = __LOOP_DEFINITION__[self.levelName][0];
+            self.subLevel = None;
+
+    
+    def __cmp__(self,other):
+        if self.subLevel is None or other.subLevel is None or self.level != other.level:
+            return cmp(self.level, other.level);
+        else :
+            return cmp(self.subLevel, other.subLevel);
+    
+    
+    
