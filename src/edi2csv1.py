@@ -34,7 +34,13 @@ loops = edi.fetchSubNodes(eachby);
 for loop in loops :
     for (fieldname, location) in fields :
         if len(location) > 0:
-            value = loop.getValue(location);
+            try :
+                value = loop.getValue(location);
+            except IndexError as ie:
+                print fieldname;
+                print location;
+                print ie.msg.dump();
+                value = '';
         else :
             value = ''
         if value == None :

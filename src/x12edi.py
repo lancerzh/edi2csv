@@ -3,7 +3,7 @@ Created on May 18, 2015
 
 @author: lancer
 '''
-
+from re import match;
 
 
 __SEGMENT_TERMINATION__ = '~'
@@ -24,20 +24,52 @@ __LOOP_DEFINITION__ = {'ISA':['0100', 'ISA/ISA/13'],
 
 def createEdi(edidata):
     if edidata.find(__LINE_TAIL__) < 0:
-        orgEdidata = edidata.replace(__SEGMENT_TERMINATION__, '\n').splitlines();
+        orgEdidata = edidata.replace(__SEGMENT_TERMINATION__, '~\n').splitlines();
     else :
-        orgEdidata = edidata.replace(__SEGMENT_TERMINATION__, '').splitlines();
+        #orgEdidata = edidata.replace(__SEGMENT_TERMINATION__, '').splitlines();
+        orgEdidata = edidata.splitlines();
+        pass
     return EdiDoc(orgEdidata);
 
 
-def getHierarch(name):
-    return __LOOP_DEFINITION__[name][0];
 
-def getIdLocation(name):
-    return __LOOP_DEFINITION__[name][1];
-
-
+        
+        
+class ValueLocator:
+    def __init__(self, location):
+        (hn, lineHeader, position)  = location.split('/', 2);
+        self.location = location;
+        self.hierarch = HierarchLocator(hn);
+        self.segmentPattern = lineHeader;
+        
+        matchObj = match(r'([0-9]+)([,:/]?)([0-9]*)' , position)
+        (self.elementPos, self.subElePos, self.subEleSep) = (int(matchObj.group(1)), matchObj.group(3), matchObj.group(2));
+        
+    def getValue(self, segment):
+        elements = segment.strip('~').split(__ELEMENT_SEPARATOR__);
+        if not self.isSubElement() :
+            return elements[self.elementPos];
+        else :
+            try :
+                ''' sub elements maybe is empty
+                '''
+                subEles = elements[self.elementPos].split(self.subEleSep);
+                return subEles[self.subElementPos - 1]
+            except IndexError as ie:
+                ie.msg = segment;
+                raise;
+            
+        
+    def isSubElement(self):
+        return self.subElePos != '';
     
+    @property
+    def subElementPos(self):
+        if self.isSubElement() :
+            return int(self.subElePos);
+        else :
+            return None
+
 
 class EdiDoc :
     
@@ -83,6 +115,7 @@ class EdiDoc :
                 currentTransactionData.append(seg);
                 index += 1;
                 while True:
+                    ''' read transaction itself's data. read until first sub loop line. '''
                     nextSeg = data[index];
                     firstElement = nextSeg.split(__ELEMENT_SEPARATOR__)[0]
                     if firstElement in __LOOP_DEFINITION__.keys() :
@@ -162,26 +195,27 @@ class EdiDocNode :
             self.hierarch = HierarchLocator(lines[0]);
             self.name = self.hierarch.levelName;
             self.body = lines;
-            self.id = self.getValue(getIdLocation(self.name))
+            self.id = self.getValue(__LOOP_DEFINITION__[self.name][1])
 
         pass;
     
 
     def getValue(self, location):
-        [hn, lineHeader, position]  = location.split('/');
-        hierarchs = hn.split(':');
-        elementPos = int(position.split('-')[0])
-        
-        if hierarchs[0] == self.name : 
+        l = ValueLocator(location);
+        if l.hierarch == self.hierarch : 
             for seg in self.body :
-                if seg.startswith(lineHeader) :
-                    elements = seg.split(__ELEMENT_SEPARATOR__);
-                    if elementPos < len(elements):
-                        return elements[elementPos];
+                if seg.startswith(l.segmentPattern) :
+                    try :
+                        return l.getValue(seg);
+                    except IndexError as ie:
+                        ie.msg = self;
+                        raise;
         elif self.parent == None :
             return '';
         else :
             return self.parent.getValue(location);
+        
+ 
             
     def dump(self):
         segs = [];
