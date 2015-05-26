@@ -28,13 +28,9 @@ def createEdi(edidata):
     else :
         #orgEdidata = edidata.replace(__SEGMENT_TERMINATION__, '').splitlines();
         orgEdidata = edidata.splitlines();
-        pass
     return EdiDoc(orgEdidata);
 
 
-
-        
-        
 class ValueLocator:
     def __init__(self, location):
         (hn, lineHeader, position)  = location.split('/', 2);
@@ -65,10 +61,8 @@ class ValueLocator:
     
     @property
     def subElementPos(self):
-        if self.isSubElement() :
-            return int(self.subElePos);
-        else :
-            return None
+        return int(self.subElePos) if self.isSubElement()  else None
+
 
 
 class EdiDoc :
@@ -81,17 +75,18 @@ class EdiDoc :
 
         self.orgEdidata = edidata;
         
-        (self.isaNode, leftData) = self.unpackEnvelope(self.orgEdidata, 'ISA', 'IEA', None);
+        (self.isaNode, leftData) = self.unpackEnvelope(self.orgEdidata, 'ISA', 'IEA');
         
-        (self.gsNode, leftData) = self.unpackEnvelope(leftData, 'GS', 'GE', self.isaNode);
+        (self.gsNode, leftData) = self.unpackEnvelope(leftData, 'GS', 'GE');
+        self.gsNode.setParent(self.isaNode);
                 
         self.sortingTransactions(leftData);
         
 
-    def unpackEnvelope(self, data, headName, tailName, parent = None):
+    def unpackEnvelope(self, data, headName, tailName):
         envelope = None;
         if data[0].startswith(headName) :
-            envelope = EdiDocNode([data[0]], parent);
+            envelope = EdiDocNode([data[0]]);
         else :
             print "err: not BEGIN with :", headName
             exit();
@@ -180,24 +175,26 @@ class EdiDocNode :
         self.hierarch = None;
         
         self.children = []
-        self.parent = parent;
-        
+
         self.id = 'NO_ID';
         self.body = []
         self.tail = [];
         
         self.deep = 0;
 
-        if parent :
-            parent.children.append(self);
-            self.deep = parent.deep + 1;
+        self.setParent(parent);
+        
         if len(lines) > 0 :
             self.hierarch = HierarchLocator(lines[0]);
             self.name = self.hierarch.levelName;
             self.body = lines;
             self.id = self.getValue(__LOOP_DEFINITION__[self.name][1])
 
-        pass;
+    def setParent(self, parent):
+        self.parent = parent;
+        if parent != None:
+            parent.children.append(self);
+            self.deep = parent.deep + 1;
     
 
     def getValue(self, location):
@@ -280,10 +277,10 @@ class HierarchLocator:
 
     
     def __cmp__(self,other):
-        if self.subLevel is None or other.subLevel is None or self.level != other.level:
+        if self.level != other.level or self.subLevel is None or other.subLevel is None :
             return cmp(self.level, other.level);
         else :
             return cmp(self.subLevel, other.subLevel);
-    
+
     
     
