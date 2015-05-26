@@ -109,7 +109,12 @@ class EdiDoc :
                         lastLoop = loops[-1];
                     else :
                         lastLoop = transaction;
-                    parent = lastLoop.getParent(currentLoopLines[0]);
+                    hierarch = HierarchLocator(currentLoopLines[0])
+                    if hierarch > lastLoop.hierarch:
+                        parent = lastLoop;
+                    else :
+                        parent = lastLoop.getParent(currentLoopLines[0]).parent;
+                    #parent = lastLoop.getParent(currentLoopLines[0]);
                     aLoop = EdiDocNode(currentLoopLines, parent);
                     loops.append(aLoop);
                     currentLoopLines = [];
@@ -120,8 +125,13 @@ class EdiDoc :
                 lastLoop = loops[-1];
             else :
                 lastLoop = transaction;
-            parent = lastLoop.getParent(currentLoopLines[0]);
-            aLoop = EdiDocNode(currentLoopLines, parent);
+            hierarch = HierarchLocator(currentLoopLines[0])
+            if hierarch > lastLoop.hierarch:
+                parent = lastLoop;
+            else :
+                parent = lastLoop.getParent(currentLoopLines[0]).parent;
+            #parent = lastLoop.getParent(currentLoopLines[0]);
+            aLoop = EdiDocNode(currentLoopLines, parent.parent);
             loops.append(aLoop);
         return loops;
     
@@ -177,6 +187,16 @@ class EdiDocNode :
         segs += self.tail;
         return segs;
     
+    def showme(self):
+        for l in self.body :
+            print '  ' * self.deep + l;
+        if len(self.children) > 0 :
+            for c in self.children:
+                c.showme();
+        if len(self.tail) > 0 :
+            for l in self.tail :
+                print '  ' * self.deep + l;
+        
     def traverse(self):
         queue = [];
         queue.append(self);
@@ -197,11 +217,17 @@ class EdiDocNode :
     def getParent(self, loophead):
         locator =  HierarchLocator(loophead);
     
-        if locator.level == __LOOP_DEFINITION__['ISA'][0] : #  loop '0100' :
-            return None
-        elif locator > self.hierarch :
+        if locator >= self.hierarch :
             return self
         return self.parent.getParent(loophead)
+    
+    def insert(self, segment, position, order = 'AFTER'):
+        length = len(self.body);
+        for (i, line) in enumerate(reversed(self.body)):
+            if line.startswith(position):
+                self.body.insert(length - i, segment)
+                break;
+                
     
     @property
     def header(self):

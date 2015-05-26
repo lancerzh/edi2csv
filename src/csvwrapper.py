@@ -39,7 +39,7 @@ def mapIndex(name):
 
 class CsvDatabase :
     def __init__(self, data, skip=0):
-        self.maxRows = -1;
+        self.db = [];
         if isinstance(data, str) :
             self.reader = csv.reader(cStringIO.StringIO(data), delimiter=',', quotechar='"', skipinitialspace=True);
         elif isinstance(data, file) :
@@ -50,25 +50,46 @@ class CsvDatabase :
         if skip > 0 :
             for i in range(skip) :
                 self.reader.next();
+        for row in self.reader:
+            if row == [] or len(row) < 0 or (len(row) == 1 and row[0] == ''):
+                continue;
+            self.db.append(row);
+            
     
-    def get_value(self, pattern):
-        index = mapIndex(pattern);
-        if index >= self.maxRows:
-            print "err: index is bigger:", index, self.maxRows
-        return self.currentData[index];
+    def getRow(self, index):
+        return CsvRow(self.db[index]);
+    
+    def search(self, conditions):
+        result = []
+        for row in self.db :
+            if CsvRow(row).match(conditions):
+                result.append(row) 
+        return result;
+    
+    
+    @property
+    def length(self):
+        return len(self.db);
 
-    
-    def next(self):
-        """ next line
-        """
-        self.currentData = self.reader.next();
-        print self.currentData
-        if self.maxRows < 0:
-            self.maxRows = len(self.currentData)
+        
+class CsvRow:
+    def __init__(self, varlist):
+        self.vars = varlist;
+        
+    def getValue(self, index):
+        return self.vars[mapIndex(index)];
         
 
-
-
+    def fillVars(self, template):
+        pass
+    
+    def match(self, conditions):
+        for key in conditions.keys() :
+            if self.vars[mapIndex(key)] != conditions.get(key) :
+                return False;
+            else :
+                continue;
+        return True;
 
 
 if __name__ == '__main__':

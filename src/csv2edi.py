@@ -36,26 +36,27 @@ def proc(in_edi, csvfile, config):
     configFile.read(config);
     csvFile = csv.reader(csvfile)
         
-    edifile = x12edi(in_edi)
+    edifile = x12edi.EdiDoc(in_edi)
     
+    lxLoop = edifile.getChilerenNodes("LX");
     
-    
-    for line in csvFile:
-        matchItems = getMatchItems(line, configFile)
-        modifyItems = getModifyItems(line, configFile);
-        claim = None
+    for lx in lxLoop :
+        
+        matchItems = getMatchItems(lx, configFile)
+        modifyItems = getModifyItems(lx, configFile);
+        line = None
         
         matched = False;
-        for claim in edifile.claims():
-            if isMatched(matchItems, claim) :
+        for line in csvFile.lines():
+            if isMatched(matchItems, line) :
                 matched = True;
                 break;
         if not matched :
-            print "*** never match for :", line;
+            print "*** never match for :", lx.dump();
             exit;
             
         for item in modifyItems:
-            modify(claim, item);
+            modify(lx, item);
      
     ret_edifile = edifile.swapRxTx();
     return ret_edifile
