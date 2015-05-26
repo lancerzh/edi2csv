@@ -6,6 +6,8 @@ Created on May 19, 2015
 import unittest
 
 import csv;
+from re import match;
+
 
 import csvwrapper;
 
@@ -73,6 +75,10 @@ class Test(unittest.TestCase):
         self.assertEqual('SND', csvRow.getValue('m'))
         self.assertEqual('RVC - Reimbursement from objective validation of nationally accepted billing and coding guidelines', csvRow.getValue('n'))
 
+    def testMatch(self):
+        index = '${csv:a}'
+        matchObj = match(r'\$\{(csv.[a-z]+)\}' , index);
+        print matchObj.group(0);
         
     
     def testMapIndex(self):

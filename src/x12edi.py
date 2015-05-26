@@ -179,6 +179,10 @@ class EdiDocNode :
         else :
             return self.parent.getValue(location);
         
+    def replaceValue(self, value, location):
+        l = ValueLocator(location);
+
+        
     def dump(self):
         segs = [];
         segs += self.body;

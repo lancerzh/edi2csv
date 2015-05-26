@@ -6,6 +6,8 @@ Created on May 19, 2015
 
 import csv;
 import cStringIO;
+from re import match;
+
 
 __CHAR_SEQ__ = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
 __CHAR_SEQ_LEN__ = len (__CHAR_SEQ__);
@@ -62,8 +64,9 @@ class CsvDatabase :
     def search(self, conditions):
         result = []
         for row in self.db :
-            if CsvRow(row).match(conditions):
-                result.append(row) 
+            csvRow = CsvRow(row)
+            if csvRow.match(conditions):
+                result.append(csvRow) 
         return result;
     
     
@@ -77,6 +80,8 @@ class CsvRow:
         self.vars = varlist;
         
     def getValue(self, index):
+        matchObj = match(r'${(csv.[a-z]+)}' , index);
+        #if index
         return self.vars[mapIndex(index)];
         
 

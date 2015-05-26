@@ -8,6 +8,7 @@ import csv
 import ConfigParser
 
 import x12edi
+import csvwrapper
 
 
 def getMatchItems(s, configFile):
@@ -31,38 +32,84 @@ def modify(claim, item):
     pass
 
 
-def proc(in_edi, csvfile, config):
-    configFile = ConfigParser.RawConfigParser()
-    configFile.read(config);
-    csvFile = csv.reader(csvfile)
-        
-    edifile = x12edi.EdiDoc(in_edi)
+def proc(ediTemplate, csvdb, config):
     
-    lxLoop = edifile.getChilerenNodes("LX");
+    conditions = {}
+    for (k, v) in config.items('keys'):
+        conditions[k.upper()] = v.upper();
+    
+    insertDefinition = {}
+    for (k, v) in config.items('insert segment after'):
+        insertDefinition[k.upper()] = v.upper();
+    
+    replaceDefinition = {}
+    for (k, v) in config.items('replace element'):
+        replaceDefinition[k.upper()] = v.upper();
+    
+    appendDefinition = {}
+    for (k, v) in config.items('append element'):
+        appendDefinition[k.upper()] = v.upper();
+    
+    # do insert
+    for hl in insertDefinition.keys():
+        (loopname, segmentPattern) = hl.split('/')
+        loops = ediTemplate.fetchSubNodes(loopname);
+        for loop in loops:
+            loop.insert(insertDefinition.get(hl), segmentPattern);
+        
+        
+    
+    lxLoop = ediTemplate.fetchSubNodes("LX");
     
     for lx in lxLoop :
+        searchConditions = {};
+        for key in conditions.keys():
+            searchConditions[conditions.get(key)] =  lx.getValue(key);
+        results = csvdb.search(searchConditions) ; 
+        if len(results) > 1 :
+            print "err: expect 1, but get " +  len(results) + " results. Check csv file or keys!"
+            for key in conditions.keys():
+                print key, conditions.get(key)
+            for key in searchConditions.keys():
+                print key, searchConditions.get(key)
+            break;
+        if len(results) == 0:
+            print "Not found any result."
+            for key in conditions.keys():
+                print key, conditions.get(key)
+            for key in searchConditions.keys():
+                print key, searchConditions.get(key)
+            continue;
+        result = results[0];
         
-        matchItems = getMatchItems(lx, configFile)
-        modifyItems = getModifyItems(lx, configFile);
-        line = None
-        
-        matched = False;
-        for line in csvFile.lines():
-            if isMatched(matchItems, line) :
-                matched = True;
-                break;
-        if not matched :
-            print "*** never match for :", lx.dump();
-            exit;
+        # do insert
+        for hl in replaceDefinition.keys():
+            value = result.getValue(replaceDefinition.get(hl));
+            lx.replaceValue(value, hl);
             
-        for item in modifyItems:
-            modify(lx, item);
-     
-    ret_edifile = edifile.swapRxTx();
-    return ret_edifile
+        modifyItems = getModifyItems(lx, config);
+        
+    ediTemplate.isaNode.showme();
+
+    return ;
 
 
 
     
 if __name__ == '__main__':
+    config = ConfigParser.RawConfigParser()
+    config.read('from_reliant_csv.ini');
+    ediTemplate = None;
+    ediTemplateFile = 'extras/testdata/RHPPAI_0505151403_3.txt';
+    with open(ediTemplateFile, 'rb') as edifile:
+        x12ediData = edifile.read();
+        ediTemplate = x12edi.createEdi(x12ediData);
+        edifile.close();
+    csvDb = None;
+    csvfilename = 'extras/testdata/JMS_RELIANT_I_20150505output.csv'
+    with open(csvfilename, 'rb') as csvfile:
+        csvDb = csvwrapper.CsvDatabase(csvfile, skip = 1);
+
+    
+    proc(ediTemplate, csvDb, config);
     pass
