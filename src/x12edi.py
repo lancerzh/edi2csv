@@ -31,38 +31,6 @@ def createEdi(edidata):
     return EdiDoc(orgEdidata);
 
 
-class ValueLocator:
-    def __init__(self, location):
-        (hn, lineHeader, position)  = location.split('/', 2);
-        self.location = location;
-        self.hierarch = HierarchLocator(hn);
-        self.segmentPattern = lineHeader;
-        
-        matchObj = match(r'([0-9]+)([,:/]?)([0-9]*)' , position)
-        (self.elementPos, self.subElePos, self.subEleSep) = (int(matchObj.group(1)), matchObj.group(3), matchObj.group(2));
-        
-    def getValue(self, segment):
-        elements = segment.strip('~').split(__ELEMENT_SEPARATOR__);
-        if not self.isSubElement() :
-            return elements[self.elementPos];
-        else :
-            try :
-                ''' sub elements maybe is empty
-                '''
-                subEles = elements[self.elementPos].split(self.subEleSep);
-                return subEles[self.subElementPos - 1]
-            except IndexError as ie:
-                ie.msg = segment;
-                raise;
-            
-        
-    def isSubElement(self):
-        return self.subElePos != '';
-    
-    @property
-    def subElementPos(self):
-        return int(self.subElePos) if self.isSubElement()  else None
-
 
 
 class EdiDoc :
@@ -70,7 +38,6 @@ class EdiDoc :
     def __init__(self, edidata):
         self.isaNode = None;
         self.gsNode = None;
-        self.orgEdidata = [];
         self.transactions = [];
 
         self.orgEdidata = edidata;
@@ -82,7 +49,6 @@ class EdiDoc :
                 
         self.sortingTransactions(leftData);
         
-
     def unpackEnvelope(self, data, headName, tailName):
         envelope = None;
         if data[0].startswith(headName) :
@@ -96,7 +62,6 @@ class EdiDoc :
             print "err: not END with :", tailName
             exit();             
         return (envelope, data[1:-1])
-
     
     def sortingTransactions(self, data):
         childrenData = [];
@@ -171,31 +136,23 @@ class EdiDoc :
 class EdiDocNode :
 
     def __init__(self, lines=[], parent=None):
-        self.name = None
-        self.hierarch = None;
-        
-        self.children = []
-
-        self.id = 'NO_ID';
         self.body = []
         self.tail = [];
         
+        self.children = []
         self.deep = 0;
-
         self.setParent(parent);
         
-        if len(lines) > 0 :
-            self.hierarch = HierarchLocator(lines[0]);
-            self.name = self.hierarch.levelName;
-            self.body = lines;
-            self.id = self.getValue(__LOOP_DEFINITION__[self.name][1])
+        self.hierarch = HierarchLocator(lines[0]);
+        self.name = self.hierarch.levelName;
+        self.body = lines;
+        self.id = self.getValue(__LOOP_DEFINITION__[self.name][1])
 
     def setParent(self, parent):
         self.parent = parent;
         if parent != None:
             parent.children.append(self);
             self.deep = parent.deep + 1;
-    
 
     def getValue(self, location):
         l = ValueLocator(location);
@@ -212,8 +169,6 @@ class EdiDocNode :
         else :
             return self.parent.getValue(location);
         
- 
-            
     def dump(self):
         segs = [];
         segs += self.body;
@@ -222,14 +177,12 @@ class EdiDocNode :
         segs += self.tail;
         return segs;
     
-    
     def traverse(self):
         queue = [];
         queue.append(self);
         for node in self.children :
             queue += node.traverse();
         return queue
-
     
     def fetchSubNodes(self, loopName):
         locator =  HierarchLocator(loopName);
@@ -282,5 +235,36 @@ class HierarchLocator:
         else :
             return cmp(self.subLevel, other.subLevel);
 
+class ValueLocator:
+    def __init__(self, location):
+        (hn, lineHeader, position)  = location.split('/', 2);
+        self.location = location;
+        self.hierarch = HierarchLocator(hn);
+        self.segmentPattern = lineHeader;
+        
+        matchObj = match(r'([0-9]+)([,:/]?)([0-9]*)' , position)
+        (self.elementPos, self.subElePos, self.subEleSep) = (int(matchObj.group(1)), matchObj.group(3), matchObj.group(2));
+        
+    def getValue(self, segment):
+        elements = segment.strip('~').split(__ELEMENT_SEPARATOR__);
+        if not self.isSubElement() :
+            return elements[self.elementPos];
+        else :
+            try :
+                ''' sub elements maybe is empty
+                '''
+                subEles = elements[self.elementPos].split(self.subEleSep);
+                return subEles[self.subElementPos - 1]
+            except IndexError as ie:
+                ie.msg = segment;
+                raise;
+            
+    def isSubElement(self):
+        return self.subElePos != '';
     
+    @property
+    def subElementPos(self):
+        return int(self.subElePos) if self.isSubElement()  else None
+
+
     
