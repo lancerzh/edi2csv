@@ -131,7 +131,7 @@ class EdiDoc :
             else :
                 parent = lastLoop.getParent(currentLoopLines[0]).parent;
             #parent = lastLoop.getParent(currentLoopLines[0]);
-            aLoop = EdiDocNode(currentLoopLines, parent.parent);
+            aLoop = EdiDocNode(currentLoopLines, parent);
             loops.append(aLoop);
         return loops;
     
