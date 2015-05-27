@@ -13,6 +13,7 @@ class Test(unittest.TestCase):
 
     def testFromFile(self):
         config = ConfigParser.RawConfigParser()
+        config.optionxform = str
         config.read('from_reliant_csv.ini');
         for section in config.sections():
             print section
@@ -23,6 +24,8 @@ class Test(unittest.TestCase):
 
     def testToFile(self):
         config = ConfigParser.RawConfigParser()
+        config.optionxform = str
+
         config.read('to_reliant_csv.ini');
         for section in config.sections():
             print section

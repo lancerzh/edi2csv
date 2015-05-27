@@ -11,84 +11,52 @@ import x12edi
 import csvwrapper
 
 
-def getMatchItems(s, configFile):
-    pass
-
-def getModifyItems(s, configFile):
-    pass
-
-def isMatched(matchItems, claim):
-    for m in matchItems :
-        if not match(claim, m):
-            return False;
-    return True;
-
-
-def match(claim, item):
-    pass
-
-
-def modify(claim, item):
-    pass
-
 
 def proc(ediTemplate, csvdb, config):
     
-    conditions = {}
-    for (k, v) in config.items('keys'):
-        conditions[k.upper()] = v.upper();
-    
-    insertDefinition = {}
-    for (k, v) in config.items('insert segment after'):
-        insertDefinition[k.upper()] = v.upper();
-    
-    replaceDefinition = {}
-    for (k, v) in config.items('replace element'):
-        replaceDefinition[k.upper()] = v.upper();
-    
-    appendDefinition = {}
-    for (k, v) in config.items('append element'):
-        appendDefinition[k.upper()] = v.upper();
-    
     # do insert
-    for hl in insertDefinition.keys():
-        (loopname, segmentPattern) = hl.split('/')
+    for (k, v) in config.items('insert segment after'):
+        (loopname, segmentPattern) = k.upper().split('/')
         loops = ediTemplate.fetchSubNodes(loopname);
         for loop in loops:
-            loop.insert(insertDefinition.get(hl), segmentPattern);
+            loop.insert(v.upper(), segmentPattern);
         
         
     
     lxLoop = ediTemplate.fetchSubNodes("LX");
     
     for lx in lxLoop :
-        searchConditions = {};
-        for key in conditions.keys():
-            searchConditions[conditions.get(key)] =  lx.getValue(key);
-        results = csvdb.search(searchConditions) ; 
+        conditions = []
+        for (k, v) in config.items('keys'):
+            docValue = lx.getValue(k.upper());
+            conditions.append((v, docValue));
+            #print k, v, docValue
+
+        results = csvdb.search(conditions) ; 
         if len(results) > 1 :
             print "err: expect 1, but get " +  len(results) + " results. Check csv file or keys!"
-            for key in conditions.keys():
-                print key, conditions.get(key)
-            for key in searchConditions.keys():
-                print key, searchConditions.get(key)
+            for (k, v) in config.items('keys'):
+                print k, v
             break;
         if len(results) == 0:
             print "Not found any result."
-            for key in conditions.keys():
-                print key, conditions.get(key)
-            for key in searchConditions.keys():
-                print key, searchConditions.get(key)
+            for (k, v) in config.items('keys'):
+                print k, v
             continue;
         result = results[0];
         
-        # do insert
-        for hl in replaceDefinition.keys():
-            value = result.getValue(replaceDefinition.get(hl));
-            lx.replaceValue(value, hl);
-            
-        modifyItems = getModifyItems(lx, config);
+        # do replace
+        for (k, v) in config.items('replace element'):
+            #print k, v;
+            value = result.getValue(v);
+            lx.replaceValue(value, k.upper());
         
+        # do append
+        for (k, v) in config.items('append element'):
+            #print k, v;
+            value = result.getValue(v);
+            lx.appendValue(value, k.upper());
+            
     ediTemplate.isaNode.showme();
 
     return ;

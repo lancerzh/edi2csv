@@ -13,13 +13,7 @@ class Test(unittest.TestCase):
 
 
     def testName(self):
-        config = 'csvwrapper.ini'
-        csv = 'Test/JMS_RELIANT_I_20150505output.csv'
-        in_edi = 'RHPPAI_0505151403_3.txt'
-        out_edi = 'edi_out.txt'
-        
-        sb = csv2edi.proc(in_edi, csv, config);
-        self.assertEqual('', sb)
+
         pass
     
 

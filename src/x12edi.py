@@ -181,7 +181,35 @@ class EdiDocNode :
         
     def replaceValue(self, value, location):
         l = ValueLocator(location);
-
+        if l.hierarch == self.hierarch : 
+            for (i, seg) in enumerate(self.body):
+                if seg.startswith(l.segmentPattern) :
+                    words = seg.strip(__SEGMENT_TERMINATION__).split(__ELEMENT_SEPARATOR__);
+                    words[l.elementPos] = value;
+                    seg = __ELEMENT_SEPARATOR__.join(words) + __SEGMENT_TERMINATION__
+                    self.body[i] = seg
+                    return;
+        elif self.parent == None :
+            raise IndexError;
+        else :
+            return self.parent.replaceValue(value, location);
+        
+    def appendValue(self, value, location):
+        l = ValueLocator(location);
+        if l.hierarch == self.hierarch : 
+            for (i, seg) in enumerate(self.body):
+                if seg.startswith(l.segmentPattern) :
+                    words = seg.strip(__SEGMENT_TERMINATION__).split(__ELEMENT_SEPARATOR__);
+                    if value != None and len(value) > 0:
+                        words[l.elementPos] += ',' +value;
+                    seg = __ELEMENT_SEPARATOR__.join(words) + __SEGMENT_TERMINATION__
+                    self.body[i] = seg
+                    return;
+        elif self.parent == None :
+            raise IndexError;
+        else :
+            return self.parent.words[l.elementPos](value, location);
+        
         
     def dump(self):
         segs = [];

@@ -24,26 +24,16 @@ class Test(unittest.TestCase):
         pass;
 
     def tearDown(self):
-        pass        
-
-    def testTemplate(self):
-        inputLine = "48377,134150427P00024,1,250,173230,,,,1,$15.00,$10.00,RVC,SND,RVC - Reimbursement from objective validation of nationally accepted billing and coding guidelines"
-        csvRow = csvwrapper.CsvRow(inputLine.split(','));  
-        
-        self.assertEqual('HCP*02*15.00**RELIANT~', csvRow.fillVars('HCP*02*${csv:k}**RELIANT~'));
-        self.assertEqual("NTE*ADD*RVC - Reimbursement from objective validation of nationally accepted billing and coding guidelines~", csvRow.fillVars('NTE*ADD*${csv:n}~'));
-        self.assertEqual("HCP*02***RELIANT~", csvRow.fillVars('HCP*02***RELIANT~'));
-        
-        self.assertEqual('NTE*ADD*RVC~', csvRow.fillVars('NTE*ADD*${csv:l},${csv:m}~'));
+        pass     
 
     def testSearch(self):
-        result = self.csvDb.search({'csv:b': '134150427P00022'});
+        result = self.csvDb.search([('csv:b','134150427P00022')]);
         self.assertEqual(15, len(result))
         
-        result = self.csvDb.search({'csv:c': '8'});
+        result = self.csvDb.search([('csv:c', '8')]);
         self.assertEqual(3, len(result))
         
-        result = self.csvDb.search({'csv:b': '134150427P00022', 'csv:c': '8'});
+        result = self.csvDb.search([('csv:b','134150427P00022'), ('csv:c','8')]);
         self.assertEqual(1, len(result))
                 
     def testFileRead(self):

@@ -80,8 +80,6 @@ class CsvRow:
         self.vars = varlist;
         
     def getValue(self, index):
-        matchObj = match(r'${(csv.[a-z]+)}' , index);
-        #if index
         return self.vars[mapIndex(index)];
         
 
@@ -89,8 +87,8 @@ class CsvRow:
         pass
     
     def match(self, conditions):
-        for key in conditions.keys() :
-            if self.vars[mapIndex(key)] != conditions.get(key) :
+        for (k, v) in conditions:
+            if self.vars[mapIndex(k)] != v :
                 return False;
             else :
                 continue;
