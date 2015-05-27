@@ -292,7 +292,7 @@ class ValueLocator:
         self.hierarch = HierarchLocator(hn);
         self.segmentPattern = lineHeader;
         
-        matchObj = match(r'([0-9]+)([,:/]?)([0-9]*)' , position)
+        matchObj = match(r'([0-9]+)([,:/-]?)([0-9]*)' , position)
         (self.elementPos, self.subElePos, self.subEleSep) = (int(matchObj.group(1)), matchObj.group(3), matchObj.group(2));
         
     def getValue(self, segment):
