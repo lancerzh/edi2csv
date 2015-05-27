@@ -4,6 +4,7 @@ Created on May 18, 2015
 @author: lancer
 '''
 from re import match;
+from CodeWarrior.Metrowerks_Shell_Suite import Segment
 
 
 __SEGMENT_TERMINATION__ = '~'
@@ -21,6 +22,10 @@ __LOOP_DEFINITION__ = {'ISA':['0100', 'ISA/ISA/13'],
                               'CLM':['2300', 'CLM/REF*D9/02'],
                               'LX':['2400', 'LX/LX/01']
                               };
+                              
+__ELEMENT_MIN_MAX_LENGTH__ = {'ISA':['ISA', (2,2), (10,10), (2,2), (10,10), (2,2), (15,15), (2,2), (15,15), (6,6), (4,4), (1,1), (5,5), (9,9), (1,1), (1,1), (1,1)],
+                              'NTE':['NTE', (3,3), (1,80)]
+                              }
 
 def createEdi(edidata):
     if edidata.find(__LINE_TAIL__) < 0:
@@ -184,14 +189,7 @@ class EdiDocNode :
         if l.hierarch == self.hierarch : 
             for (i, seg) in enumerate(self.body):
                 if seg.startswith(l.segmentPattern) :
-                    words = seg.strip(__SEGMENT_TERMINATION__).split(__ELEMENT_SEPARATOR__);
-                    if method == 'APPEND':
-                        if value != None and len(value) > 0:
-                            words[l.elementPos] += ',' +value;
-                    else :  #  default method == 'REPLACE':
-                        words[l.elementPos] = value;
-                    seg = __ELEMENT_SEPARATOR__.join(words) + __SEGMENT_TERMINATION__
-                    self.body[i] = seg
+                    self.body[i] = l.setValue(value, seg, method);
                     return;
         elif self.parent == None :
             raise IndexError;
@@ -311,6 +309,25 @@ class ValueLocator:
                 ie.msg = segment;
                 raise;
             
+    def setValue(self, value, segment, method = 'REPLACE'):
+        words = segment.strip(__SEGMENT_TERMINATION__).split(__ELEMENT_SEPARATOR__);
+        if method == 'APPEND':
+            if value != None and len(value) > 0:
+                words[self.elementPos] += ',' +value;
+        else :  #  default method == 'REPLACE':
+            words[self.elementPos] = value;
+        
+        # check element has length limit
+        if __ELEMENT_MIN_MAX_LENGTH__.get(words[0]) != None:
+            vLength = len(words[self.elementPos])
+            (mn, mx) =__ELEMENT_MIN_MAX_LENGTH__.get(words[0])[self.elementPos]
+            if vLength > mx :
+                words[self.elementPos] = words[self.elementPos][:mx];
+            if vLength < mn:
+                words[self.elementPos] = words[self.elementPos] + ' ' * (mn - len(value))
+        return __ELEMENT_SEPARATOR__.join(words) + __SEGMENT_TERMINATION__
+
+
     def isSubElement(self):
         return self.subElePos != '';
     

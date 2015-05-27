@@ -25,6 +25,30 @@ class Test(unittest.TestCase):
 
     def tearDown(self):
         pass     
+    
+    def testIsCurrency(self):
+        self.assertTrue('120'.isdigit());
+        self.assertFalse('120.00'.isdigit());
+        
+        self.assertTrue(csvwrapper.isCurrency('$10.56'));
+        self.assertTrue(csvwrapper.isCurrency('$1,000.45'));
+        self.assertTrue(csvwrapper.isCurrency('$10,000,000.0'));
+        self.assertTrue(csvwrapper.isCurrency('0.56'));
+        self.assertTrue(csvwrapper.isCurrency('1,000.45'));
+        self.assertTrue(csvwrapper.isCurrency('10,000,000.0'));
+
+        self.assertFalse(csvwrapper.isCurrency('$$10.56'));
+        self.assertFalse(csvwrapper.isCurrency('$a10.56'));
+        self.assertFalse(csvwrapper.isCurrency('a$10.56'));
+        self.assertFalse(csvwrapper.isCurrency('a10.56'));
+        self.assertFalse(csvwrapper.isCurrency('10.56a'));
+
+        self.assertTrue(csvwrapper.isCurrency('$120.50'));
+
+        row = '$120.50,aaa,bbb'
+        csvRow = csvwrapper.CsvRow(row.split(','));
+        self.assertEqual('120.50', csvRow.getValue('a'));
+
 
     def testSearch(self):
         result = self.csvDb.search([('csv:b','134150427P00022')]);
@@ -60,7 +84,7 @@ class Test(unittest.TestCase):
 
         self.assertEqual('134150427P00024', csvRow.getValue('b'))
         self.assertEqual('1', csvRow.getValue('c'))
-        self.assertEqual('$10.00', csvRow.getValue('K'))
+        self.assertEqual('10.00', csvRow.getValue('K'))
         self.assertEqual('RVC', csvRow.getValue('csv:l'))
         self.assertEqual('SND', csvRow.getValue('m'))
         self.assertEqual('RVC - Reimbursement from objective validation of nationally accepted billing and coding guidelines', csvRow.getValue('n'))

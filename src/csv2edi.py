@@ -57,9 +57,45 @@ def proc(ediTemplate, csvdb, config):
             value = result.getValue(v);
             lx.appendValue(value, k.upper());
             
+        # recalc HCP
+        v1 = lx.getValue('LX/SV2/03');
+        v2 = lx.getValue('LX/HCP/02')
+        lx.setValue(str(float(v1) - float(v2)), 'LX/HCP/03');
+        
+    clmLoops = ediTemplate.fetchSubNodes("CLM");
+    for clm in clmLoops:
+        total = clm.getValue('CLM/CLM/02');
+        sum1 = 0;
+        sum2 = 0;
+        lxLoops = clm.fetchSubNodes('LX');
+        for lx in lxLoops :
+            sum1 += float(lx.getValue('LX/HCP/02'))
+            sum2 += float(lx.getValue('LX/HCP/03'))
+        clm.setValue(str(sum1), 'CLM/HCP/02');
+        clm.setValue(str(sum2), 'CLM/HCP/03');
+        if float(total) - (sum1 + sum2) > 0.000001:
+            print 'err: total is not match';
+            print float(total) - (sum1 + sum2) ;
+            clm.showme();
+            print sum1 + sum2, sum1, sum2, total, float(total)
+
+        
+    stLoops = ediTemplate.fetchSubNodes("ST");       
+    for st in stLoops:
+        valueLocator = x12edi.ValueLocator('ST/SE/01');
+        loopLength = len(st.dump())
+        st.tail[-1] = valueLocator.setValue(str(loopLength), st.tail[-1])
+        
+    for (k, v) in config.items('replace envelope'):
+        valueLocator = x12edi.ValueLocator(k.upper());
+        loops = ediTemplate.fetchSubNodes(valueLocator.hierarch.levelName);
+        for loop in loops:
+            loop.setValue(v, k.upper());
+
+            
     ediTemplate.isaNode.showme();
 
-    return ;
+    return ediTemplate.isaNode.dump();
 
 
 
@@ -79,5 +115,10 @@ if __name__ == '__main__':
         csvDb = csvwrapper.CsvDatabase(csvfile, skip = 1);
 
     
-    proc(ediTemplate, csvDb, config);
+    r = proc(ediTemplate, csvDb, config);
+    
+    with open('result.txt', 'w') as outputfile:
+        for line in r :
+            outputfile.write(line+'\n');
+        outputfile.close();
     pass

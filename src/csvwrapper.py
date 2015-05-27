@@ -38,6 +38,13 @@ def mapIndex(name):
         return int(indexName);
     else :
         return __INDEX_MAPPER__[indexName.upper()]
+    
+def isCurrency(aString):
+    return match(r'^\$?\d+[,\d]*[.]?[\d]*$', aString) and True or False
+
+def atof(string):
+    return string.replace('$', '').replace(',', '')
+
 
 class CsvDatabase :
     def __init__(self, data, skip=0):
@@ -80,8 +87,8 @@ class CsvRow:
         self.vars = varlist;
         
     def getValue(self, index):
-        return self.vars[mapIndex(index)];
-        
+        v = self.vars[mapIndex(index)];
+        return atof(v) if isCurrency(v) else v
 
     def fillVars(self, template):
         pass
