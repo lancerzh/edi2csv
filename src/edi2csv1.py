@@ -5,6 +5,7 @@ Created on May 22, 2015
 '''
 
 import ConfigParser;
+from re import match;
 
 import x12edi;
 
@@ -34,13 +35,35 @@ loops = edi.fetchSubNodes(eachby);
 for loop in loops :
     for (fieldname, location) in fields :
         if len(location) > 0:
-            try :
-                value = loop.getValue(location);
-            except IndexError as ie:
-                print fieldname;
-                print location;
-                print ie.msg.dump();
-                value = '';
+            ls = location.split('or');
+            while len(ls) > 0:
+                oneLocation = ls.pop().strip();
+                if match(r'\'.*\'', oneLocation) != None:
+                    value = oneLocation.strip('\'');
+                    break;
+                try :
+                    value = loop.getValue(oneLocation);
+                    if value != None and len(value) > 0:
+                        break;
+                except IndexError as ie:
+                    print fieldname;
+                    print location;
+                    print ie.msg.dump();
+                    value = '';
+                    if len(ls) > 0:
+                        oneLocation = ls[-1].strip();
+                        if match(r'\'.*\'', oneLocation) != None:
+                            value = oneLocation.strip('\'');
+                        else :
+                            print fieldname;
+                            print location;
+                            print ie.msg.dump();
+                            value = '';
+                    else :
+                        print fieldname;
+                        print location;
+                        print ie.msg.dump();
+                        value = '';
         else :
             value = ''
         if value == None :
