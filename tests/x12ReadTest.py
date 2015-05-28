@@ -27,6 +27,22 @@ class TestEdiData(unittest.TestCase):
         pass
     
     def testHierarchLocator(self):
+        self.assertEqual(HierarchLocator('ISA'), HierarchLocator('ISA*00*1         *00*1         *ZZ*TRIZETTOCE     *30*RELIANT        *150505*1405*^*00501*000004220*0*P*:~'));
+        self.assertEqual(HierarchLocator('GS'), HierarchLocator('GS*HC*TRIZETTOCE*RELIANT*20150505*1405*3994733*X*005010X222A1~'));
+        self.assertEqual(HierarchLocator('ST'), HierarchLocator('ST*837*1001*005010X222A1~'));
+        self.assertEqual(HierarchLocator('HL:20'), HierarchLocator('HL*1**20*1~'));
+        self.assertEqual(HierarchLocator('HL:22'), HierarchLocator('HL*2*1*22*1~'));
+        self.assertEqual(HierarchLocator('HL:23'), HierarchLocator('HL*3*2*23*0~'));    
+        self.assertEqual(HierarchLocator('CLM'), HierarchLocator('CLM*5837*80***11:B:1*Y*A*Y*I~'));    
+        self.assertEqual(HierarchLocator('LX'), HierarchLocator('LX*1~'));
+        
+        try :
+            HierarchLocator('UNKNOWN_LOOP')
+        except KeyError as e:
+            print e;
+        
+
+    def testHierarchLocatorCompare(self):
         self.assertEqual(HierarchLocator('HL'), HierarchLocator('HL'));
         self.assertEqual(HierarchLocator('HL'), HierarchLocator('HL:20'));
         self.assertTrue(HierarchLocator('HL:20') < HierarchLocator('HL:22'));
@@ -65,9 +81,9 @@ class TestEdiData(unittest.TestCase):
         self.assertEqual(1, ValueLocator('HL/HL/01').elementPos );
         
         self.assertEqual(9, ValueLocator('HL:22/NM1*IL/09').elementPos);
-        self.assertFalse(ValueLocator('HL:22/NM1*IL/09').isSubElement());
-        self.assertTrue(ValueLocator('HL:22/NM1*IL/09:01').isSubElement());
-        self.assertTrue(ValueLocator('HL:22/NM1*IL/09,01').isSubElement());
+        self.assertFalse(ValueLocator('HL:22/NM1*IL/09').hasSubElement());
+        self.assertTrue(ValueLocator('HL:22/NM1*IL/09:01').hasSubElement());
+        self.assertTrue(ValueLocator('HL:22/NM1*IL/09,01').hasSubElement());
 
 
         self.assertEqual(2, ValueLocator('CLM/HI*BF/02:3').elementPos);

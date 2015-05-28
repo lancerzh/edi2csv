@@ -4,7 +4,6 @@ Created on May 18, 2015
 @author: lancer
 '''
 from re import match;
-from CodeWarrior.Metrowerks_Shell_Suite import Segment
 
 
 __SEGMENT_TERMINATION__ = '~'
@@ -149,6 +148,8 @@ class EdiDoc :
     
 
 class EdiDocNode :
+    ''' This class present a document node
+    '''
 
     def __init__(self, lines=[], parent=None):
         self.body = []
@@ -179,10 +180,13 @@ class EdiDocNode :
                     except IndexError as ie:
                         ie.msg = self;
                         raise;
-        elif self.parent == None :
-            return '';
-        else :
+            else :
+                raise IndexError;
+        elif l.hierarch < self.hierarch:
             return self.parent.getValue(location);
+        else : # l.hierarch > self.hierarch 
+            print 'check config.ini file, you input a unknown LOOP NAME! ' + location 
+            return '';
         
     def setValue(self, value, location, method='REPLACE'):
         l = ValueLocator(location);
@@ -194,7 +198,7 @@ class EdiDocNode :
         elif self.parent == None :
             raise IndexError;
         else :
-            return self.parent.replaceValue(value, location);
+            return self.parent.setValue(value, location);
         
         
     def replaceValue(self, value, location):
@@ -258,9 +262,11 @@ class EdiDocNode :
         return self.body[0];
         
 class HierarchLocator:
+    ''' This class proc Loop hierarch description such as 'HL:20/', 'CLM/'
+    '''
     __SEPARATOR__ = ':';
     def __init__(self, locator):
-        self.locator = locator;
+        self.locator = locator.upper();
         if locator.find(__ELEMENT_SEPARATOR__) > 0: # x12 edi loop line
             words = locator.split(__ELEMENT_SEPARATOR__);
             self.levelName = words[0];
@@ -286,8 +292,10 @@ class HierarchLocator:
             return cmp(self.subLevel, other.subLevel);
 
 class ValueLocator:
+    ''' this class proc value location description such like 'CLM/HCP/03-03'
+    '''
     def __init__(self, location):
-        (hn, lineHeader, position)  = location.split('/', 2);
+        (hn, lineHeader, position)  = location.upper().split('/', 2);
         self.location = location;
         self.hierarch = HierarchLocator(hn);
         self.segmentPattern = lineHeader;
@@ -297,7 +305,7 @@ class ValueLocator:
         
     def getValue(self, segment):
         elements = segment.strip('~').split(__ELEMENT_SEPARATOR__);
-        if not self.isSubElement() :
+        if not self.hasSubElement() :
             return elements[self.elementPos];
         else :
             try :
@@ -322,18 +330,21 @@ class ValueLocator:
             vLength = len(words[self.elementPos])
             (mn, mx) =__ELEMENT_MIN_MAX_LENGTH__.get(words[0])[self.elementPos]
             if vLength > mx :
+                print 'warning: it is over the element limit:' + str(mx)
+                print words[self.elementPos]
+                print 'Over limit chars will be cut out.'
                 words[self.elementPos] = words[self.elementPos][:mx];
             if vLength < mn:
                 words[self.elementPos] = words[self.elementPos] + ' ' * (mn - len(value))
         return __ELEMENT_SEPARATOR__.join(words) + __SEGMENT_TERMINATION__
 
 
-    def isSubElement(self):
+    def hasSubElement(self):
         return self.subElePos != '';
     
     @property
     def subElementPos(self):
-        return int(self.subElePos) if self.isSubElement()  else None
+        return int(self.subElePos) if self.hasSubElement()  else None
 
 
     

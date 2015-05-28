@@ -11,20 +11,63 @@ import x12edi
 import csvwrapper
 
 
+submitter = ['ST/NM1*41/03',  'GS/GS/02', 'ISA/ISA/06']     #= RELIANT
+submitterid = ['ST/NM1*41/09']      # = 074
 
-def proc(ediTemplate, csvdb, config):
+receiver = ['ST/NM1*40/03', 'GS/GS/03', 'ISA/ISA/08']       # = TRIZETTO
+receiverid = ['ST/NM1*40/09']       # = 14001
+
+
+
+
+def recalc_LX_HCP(lx):
+    v1 = lx.getValue('LX/SV2/03')
+    v2 = lx.getValue('LX/HCP/02')
+    lx.setValue(str(float(v1) - float(v2)), 'LX/HCP/03')
+
+
+def recalc_CLM_HCP(clm):
+    total = clm.getValue('CLM/CLM/02')
+    sum1 = 0
+    sum2 = 0
+    lxLoops = clm.fetchSubNodes('LX')
+    for lx in lxLoops:
+        sum1 += float(lx.getValue('LX/HCP/02'))
+        sum2 += float(lx.getValue('LX/HCP/03'))
     
+    clm.setValue(str(sum1), 'CLM/HCP/02')
+    clm.setValue(str(sum2), 'CLM/HCP/03')
+    if float(total) - (sum1 + sum2) > 0.000001:
+        print 'err: total is not match'
+        print float(total) - (sum1 + sum2)
+        clm.showme()
+        print sum1 + sum2, sum1, sum2, total, float(total)
+
+
+def replace_SE_SEG_NUMBER(st):
+    valueLocator = x12edi.ValueLocator('ST/SE/01')
+    loopLength = len(st.dump())
+    st.tail[-1] = valueLocator.setValue(str(loopLength), st.tail[-1])
+
+
+def replaceSubmitterReceiver(template, config):
+# set evenlope head
+    for k, v in config.items('submitter and receiver'):
+        for vl in globals()[k]:
+            vl1 = x12edi.ValueLocator(vl)
+            loops = template.fetchSubNodes(vl1.hierarch.levelName)
+            for l in loops:
+                l.replaceValue(v.upper(), vl)
+
+def proc(template, csvdb, config):
     # do insert
     for (k, v) in config.items('insert segment after'):
         (loopname, segmentPattern) = k.upper().split('/')
-        loops = ediTemplate.fetchSubNodes(loopname);
+        loops = template.fetchSubNodes(loopname);
         for loop in loops:
             loop.insert(v.upper(), segmentPattern);
         
-        
-    
-    lxLoop = ediTemplate.fetchSubNodes("LX");
-    
+    lxLoop = template.fetchSubNodes("LX");
     for lx in lxLoop :
         conditions = []
         for (k, v) in config.items('keys'):
@@ -57,45 +100,21 @@ def proc(ediTemplate, csvdb, config):
             value = result.getValue(v);
             lx.appendValue(value, k.upper());
             
-        # recalc HCP
-        v1 = lx.getValue('LX/SV2/03');
-        v2 = lx.getValue('LX/HCP/02')
-        lx.setValue(str(float(v1) - float(v2)), 'LX/HCP/03');
-        
-    clmLoops = ediTemplate.fetchSubNodes("CLM");
+        recalc_LX_HCP(lx)
+    
+    # recalc CLM/HCP    
+    clmLoops = template.fetchSubNodes("CLM");
     for clm in clmLoops:
-        total = clm.getValue('CLM/CLM/02');
-        sum1 = 0;
-        sum2 = 0;
-        lxLoops = clm.fetchSubNodes('LX');
-        for lx in lxLoops :
-            sum1 += float(lx.getValue('LX/HCP/02'))
-            sum2 += float(lx.getValue('LX/HCP/03'))
-        clm.setValue(str(sum1), 'CLM/HCP/02');
-        clm.setValue(str(sum2), 'CLM/HCP/03');
-        if float(total) - (sum1 + sum2) > 0.000001:
-            print 'err: total is not match';
-            print float(total) - (sum1 + sum2) ;
-            clm.showme();
-            print sum1 + sum2, sum1, sum2, total, float(total)
+        recalc_CLM_HCP(clm)
 
-        
-    stLoops = ediTemplate.fetchSubNodes("ST");       
+    # recalc st tail lines count
+    stLoops = template.fetchSubNodes("ST");       
     for st in stLoops:
-        valueLocator = x12edi.ValueLocator('ST/SE/01');
-        loopLength = len(st.dump())
-        st.tail[-1] = valueLocator.setValue(str(loopLength), st.tail[-1])
-        
-    for (k, v) in config.items('replace envelope'):
-        valueLocator = x12edi.ValueLocator(k.upper());
-        loops = ediTemplate.fetchSubNodes(valueLocator.hierarch.levelName);
-        for loop in loops:
-            loop.setValue(v, k.upper());
-
+        replace_SE_SEG_NUMBER(st)
+    
+    replaceSubmitterReceiver(ediTemplate, config)      
             
-    ediTemplate.isaNode.showme();
-
-    return ediTemplate.isaNode.dump();
+    return template.isaNode.dump();
 
 
 
@@ -116,7 +135,8 @@ if __name__ == '__main__':
 
     
     r = proc(ediTemplate, csvDb, config);
-    
+    ediTemplate.isaNode.showme();
+
     with open('result.txt', 'w') as outputfile:
         for line in r :
             outputfile.write(line+'\n');
