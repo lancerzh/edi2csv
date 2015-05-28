@@ -37,7 +37,7 @@ def fetchValueWithDefault(location, loop, msg = ''):
                 if defaultValue == None :
                     print "**** field name" + msg;
                     print location;
-                    print ie.msg;                
+                    #print ie.msg;                
                 return defaultValue;
 
 def proc():
@@ -55,7 +55,12 @@ def proc():
             row.append(value);
         data.append(row);
         row = [];
-    
+        title = []    
+        
+    for (fieldname, location) in fields :
+        title.append(fieldname);
+    print ', '.join(title);
+
     for r in data :
         print ', '.join(r);
 
@@ -73,10 +78,5 @@ if __name__ == '__main__':
     
     fields = config.items('csv field');
     
-    title = []    
-    for (fieldname, location) in fields :
-        title.append(fieldname);
-    print ', '.join(title);
-
     proc();
     pass
