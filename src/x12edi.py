@@ -252,7 +252,7 @@ class EdiDocNode :
     def insert(self, segment, position, order = 'AFTER'):
         length = len(self.body);
         for (i, line) in enumerate(reversed(self.body)):
-            if line.startswith(position):
+            if line.startswith(position.upper()):
                 self.body.insert(length - i, segment)
                 break;
                 
@@ -266,7 +266,7 @@ class HierarchLocator:
     '''
     __SEPARATOR__ = ':';
     def __init__(self, locator):
-        self.locator = locator.upper();
+        locator = locator.upper();
         if locator.find(__ELEMENT_SEPARATOR__) > 0: # x12 edi loop line
             words = locator.split(__ELEMENT_SEPARATOR__);
             self.levelName = words[0];

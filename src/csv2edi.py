@@ -57,21 +57,21 @@ def replaceSubmitterReceiver(template, config):
             vl1 = x12edi.ValueLocator(vl)
             loops = template.fetchSubNodes(vl1.hierarch.levelName)
             for l in loops:
-                l.replaceValue(v.upper(), vl)
+                l.replaceValue(v, vl)
 
 def proc(template, csvdb, config):
     # do insert
     for (k, v) in config.items('insert segment after'):
-        (loopname, segmentPattern) = k.upper().split('/')
+        (loopname, segmentPattern) = k.split('/')
         loops = template.fetchSubNodes(loopname);
         for loop in loops:
-            loop.insert(v.upper(), segmentPattern);
+            loop.insert(v, segmentPattern);
         
     lxLoop = template.fetchSubNodes("LX");
     for lx in lxLoop :
         conditions = []
         for (k, v) in config.items('keys'):
-            docValue = lx.getValue(k.upper());
+            docValue = lx.getValue(k);
             conditions.append((v, docValue));
             #print k, v, docValue
 
@@ -92,13 +92,13 @@ def proc(template, csvdb, config):
         for (k, v) in config.items('replace element'):
             #print k, v;
             value = result.getValue(v);
-            lx.replaceValue(value, k.upper());
+            lx.replaceValue(value, k);
         
         # do append
         for (k, v) in config.items('append element'):
             #print k, v;
             value = result.getValue(v);
-            lx.appendValue(value, k.upper());
+            lx.appendValue(value, k);
             
         recalc_LX_HCP(lx)
     
