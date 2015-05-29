@@ -181,12 +181,20 @@ class EdiDocNode :
                         ie.msg = self;
                         raise;
             else :
+                ''' TODO: should be return Notfound'''
                 raise IndexError;
         elif l.hierarch < self.hierarch:
             return self.parent.getValue(location);
         else : # l.hierarch > self.hierarch 
-            print 'check config.ini file, you input a unknown LOOP NAME! ' + location 
-            return '';
+            print 'not found element at: ' + location 
+            '''
+            hl20 = self.getParent('HL:20')
+            if hl20 :
+                hl20.showme() 
+            TODO: ADD NOTFOUND EXCEPTION 
+            sometime LOOP hierarch absent, should be return NotFound 
+            '''
+            raise IndexError;
         
     def setValue(self, value, location, method='REPLACE'):
         l = ValueLocator(location);
