@@ -5,6 +5,7 @@ Created on May 26, 2015
 '''
 import unittest
 from string import Template;
+from re import match;
 
 import x12edi;
 
@@ -51,7 +52,20 @@ class Test(unittest.TestCase):
         clm.insert("HCP*02***RELIANT~", 'HI');
         lx.showme();
         clm.showme();
-
+        
+    def testSetValue(self):
+        node = x12edi.EdiDocNode(['LX*1~', 'SV1*HC:99443:::::PHYS/QHP TELEPHONE EVALUATION 21-30 MIN*80*UN*1***1~']);
+        node.setValue('aaa', 'LX/SV1/01')
+        self.assertEqual('SV1*aaa*80*UN*1***1~', node.body[1])
+        
+        node = x12edi.EdiDocNode(['LX*1~', 'SV1*HC:99443:::::*80*UN*1***1~']);
+        node.setValue('aaa', 'LX/SV1/01:3')
+        self.assertEqual('SV1*HC:99443:aaa::::*80*UN*1***1~', node.body[1])
+        
+    def testMatch(self):
+        r = r'(csv:\w+)(,(csv:\w+))*'
+        self.assertIsNotNone(match(r, 'csv:a,csv:b'))
+        self.assertIsNotNone(match(r, 'csv:a,csv:b,csv:c'))
 
 
 if __name__ == "__main__":

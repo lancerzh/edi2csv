@@ -317,14 +317,19 @@ class ValueLocator:
                 ie.msg = segment;
                 raise;
             
-    def setValue(self, value, segment, method = 'REPLACE'):
+    def setValue(self, value, segment, method = 'REPLACE', sep = ','):
         words = segment.strip(__SEGMENT_TERMINATION__).split(__ELEMENT_SEPARATOR__);
         if method == 'APPEND':
             if value != None and len(value) > 0:
-                words[self.elementPos] += ',' +value;
+                words[self.elementPos] += sep +value;
         else :  #  default method == 'REPLACE':
-            words[self.elementPos] = value;
-        
+            if not self.hasSubElement() :
+                words[self.elementPos] = value;
+            else :
+                subEles = words[self.elementPos].split(self.subEleSep);
+                subEles[self.subElementPos - 1] = value;
+                words[self.elementPos] = self.subEleSep.join(subEles);
+                        
         # check element has length limit
         if __ELEMENT_MIN_MAX_LENGTH__.get(words[0]) != None:
             vLength = len(words[self.elementPos])
