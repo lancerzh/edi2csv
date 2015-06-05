@@ -58,11 +58,19 @@ def replaceSubmitterReceiver(template, config):
             loops = template.fetchSubNodes(vl1.hierarch.levelName)
             for l in loops:
                 l.replaceValue(v, vl)
+                
+class InsertAction:
+    def __init__(self, segment, template):
+        self.afterSegment = segment;
+        self.template = template;
+        
+    def perform(self, loop):
+        loop.insert(self.template, self.afterSegment);
+        
 
 def proc(template, csvdb, config):
     # do insert
     for (k, v) in config.items('insert segment after'):
-        print k, v
         (loopname, segmentPattern) = k.split('/')
         loops = template.fetchSubNodes(loopname);
         for loop in loops:
@@ -92,13 +100,13 @@ def proc(template, csvdb, config):
         # do replace
         for (k, v) in config.items('replace element'):
             #print k, v;
-            value = result.getValue(v.split(':')[1]);
+            value = result.getValue(v);
             lx.replaceValue(value, k);
         
         # do append
         for (k, v) in config.items('append element'):
             #print k, v;
-            value = result.getValue(v.split(':')[1]);
+            value = result.getValue(v);
             lx.appendValue(value, k);
             
         recalc_LX_HCP(lx)
@@ -128,6 +136,8 @@ def check(config):
     config.add_section('insert segment after');
     config.add_section('replace element');
     config.add_section('append element');
+    
+    #actions = []
 
     for (k, v) in config.items('actions'):
         kint = int(k);
@@ -136,7 +146,8 @@ def check(config):
         if matchObj != None:
             template = matchObj.group(1).strip(r'[\'" ]')
             locator = matchObj.group(2)
-            print template, locator
+            #print template, locator
+            #actions.append(InsertAction(template, locator))
             config.set('insert segment after', locator, template);
             continue;
         matchObj = match(reSetvalue, v);
@@ -144,6 +155,8 @@ def check(config):
             #print v
             template = matchObj.group(1).strip(r'[\$\{\}\s]')
             locator = matchObj.group(2)
+            #actions.append(ReplaceAction(template, locator))
+
             config.set('replace element', locator, template);
             continue;
         matchObj = match(reAppend, v);

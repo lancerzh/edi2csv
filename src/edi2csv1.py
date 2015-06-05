@@ -5,7 +5,8 @@ Created on May 22, 2015
 '''
 
 import ConfigParser;
-from re import match;
+from re import match, split
+from string import Template;
 
 import x12edi;
 
@@ -41,28 +42,41 @@ def fetchValueWithDefault(location, loop, msg = ''):
                 return defaultValue;
 
 def proc():
+    title = [];
+    ifOutput = [];
+    
+    for (fieldname, location) in fields :
+        title.append(fieldname.strip('- '));
+        if not fieldname.startswith('-') :
+            ifOutput.append('+')
+        else :
+            ifOutput.append('-')
+
+    myvars = {}
     data = []
-    row = []
     loops = edi.fetchSubNodes(eachby);
     for loop in loops :
-        for (fieldname, location) in fields :
-            if len(location.strip()) > 0:
+        row = []
+        for index, (fieldname, location) in enumerate(fields) :
+            if match(r'\$', location):
+                t = Template(location)
+                '''
+                for i in range(index):
+                    print title[i], myvars[title[i]]
+                    '''
+                value = t.substitute(myvars);
+            elif len(location.strip()) > 0:
                 value = fetchValueWithDefault(location, loop, fieldname);
             else :
                 value = ''
             if value == None :
                 value = 'None'
             row.append(value);
+            myvars[title[index]] = value;
         data.append(row);
-        row = [];
-        title = []    
         
-    for (fieldname, location) in fields :
-        title.append(fieldname);
-    print ', '.join(title);
-
-    for r in data :
-        print ', '.join(r);
+    
+    return (title, data, ifOutput);
 
 
 
@@ -73,10 +87,26 @@ if __name__ == '__main__':
     edi = x12edi.createEdi(x12ediData);
     
     config = ConfigParser.RawConfigParser()
+    config.optionxform = str
     config.read('to_reliant_csv.ini');
+                
     eachby = config.get('main', 'eachby');
     
     fields = config.items('csv field');
     
-    proc();
+    (title, data, ifOutput) = proc();
+    
+    row = []
+    for index, ifo in enumerate(ifOutput) :
+        if ifo != '-':
+            row.append(title[index]);
+    print ', '.join(row);
+
+    for aLine in data :
+        row = []
+        for index, ifo in enumerate(ifOutput) :
+            if ifo != '-':
+                row.append(aLine[index]);
+        print ', '.join(row);
+
     pass
