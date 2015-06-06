@@ -4,8 +4,9 @@ Created on May 28, 2015
 @author: lancer
 '''
 import unittest
+from datetime import date;
 
-import edi2csv1
+from edi2csv1 import fetchValueWithDefault, Sequence
 import x12edi
 
 
@@ -25,19 +26,19 @@ class Test(unittest.TestCase):
         lx = x12edi.EdiDocNode(lines);
         
         locations = "LX/SV2/02"
-        self.assertEqual('', edi2csv1.fetchValueWithDefault(locations, lx));
+        self.assertEqual('', fetchValueWithDefault(locations, lx));
 
         locations = "LX/SV2/02-1"
-        self.assertEqual('', edi2csv1.fetchValueWithDefault(locations, lx));
+        self.assertEqual('', fetchValueWithDefault(locations, lx));
         
         locations = "LX/SV2/02-2"
-        self.assertIsNone(edi2csv1.fetchValueWithDefault(locations, lx));
+        self.assertIsNone(fetchValueWithDefault(locations, lx));
         
         locations = "LX/SV2/02-2 or ''"
-        self.assertEqual('', edi2csv1.fetchValueWithDefault(locations, lx));
+        self.assertEqual('', fetchValueWithDefault(locations, lx));
 
         locations = "LX/SV2/02-2 or 'defaultValue'"
-        self.assertEqual('defaultValue', edi2csv1.fetchValueWithDefault(locations, lx));
+        self.assertEqual('defaultValue', fetchValueWithDefault(locations, lx));
         pass
     
     def testMutiLocator(self):
@@ -46,14 +47,14 @@ class Test(unittest.TestCase):
         lx = x12edi.EdiDocNode(lines);
         
         locations = "LX/SV2/02-2 or LX/PWK/02"
-        self.assertEqual('EL', edi2csv1.fetchValueWithDefault(locations, lx));
+        self.assertEqual('EL', fetchValueWithDefault(locations, lx));
         
         locations = "LX/SV2/02-2 or LX/PWK/02 or ''"
-        self.assertEqual('EL', edi2csv1.fetchValueWithDefault(locations, lx));
+        self.assertEqual('EL', fetchValueWithDefault(locations, lx));
 
 
         locations = "LX/SV2/02-2 or LX/PWK/02 or 'defaultValue'"
-        self.assertEqual('EL', edi2csv1.fetchValueWithDefault(locations, lx));
+        self.assertEqual('EL', fetchValueWithDefault(locations, lx));
         pass
 
     def testMutiLocatorDefault(self):
@@ -62,31 +63,70 @@ class Test(unittest.TestCase):
         lx = x12edi.EdiDocNode(lines);
         
         locations = "LX/SV2/02-2 or LX/PWK/02-2" 
-        self.assertIsNone(edi2csv1.fetchValueWithDefault(locations, lx));
+        self.assertIsNone(fetchValueWithDefault(locations, lx));
         
         locations = "LX/SV2/02-2 or LX/PWK/02-2 or ''"
-        self.assertEqual('', edi2csv1.fetchValueWithDefault(locations, lx));
+        self.assertEqual('', fetchValueWithDefault(locations, lx));
 
 
         locations = "LX/SV2/02-2 or LX/PWK/02-2 or 'defaultValue'"
-        self.assertEqual('defaultValue', edi2csv1.fetchValueWithDefault(locations, lx));
+        self.assertEqual('defaultValue', fetchValueWithDefault(locations, lx));
         pass
     
     def testDRG(self):
         edi = x12edi.createEdi(self.x12ediData);
         lxloop = edi.fetchSubNodes('LX')[0];
         locations = "CLM/HI*DR/01:02" 
-        self.assertIsNone(edi2csv1.fetchValueWithDefault(locations, lxloop));
+        self.assertIsNone(fetchValueWithDefault(locations, lxloop));
         
         locations = "CLM/HI*DR/01:02 or 'aaaa'" 
-        self.assertEqual('aaaa', edi2csv1.fetchValueWithDefault(locations, lxloop));
+        self.assertEqual('aaaa', fetchValueWithDefault(locations, lxloop));
         
+    def testSeq(self):
+        
+        seq = Sequence("JMS${today, '%Y%m%d'}678###");
+        now = date.today();
+        self.assertEqual('JMS'+ now.strftime('%Y%m%d') + '678001', seq.next())
+        
+    def testSeqNotKnowVariable(self):
+        try :
+            Sequence("JMS${date, '%Y%m%d'}678");
+        except Exception as e :
+            print e;
+    
+    def testSeqNotPlaceHolder(self):
+        seq = Sequence("JMS678##");
+        self.assertEqual('JMS67801', seq.next())
+        self.assertEqual('JMS67802', seq.next())
+        self.assertEqual('JMS67803', seq.next())
+        self.assertEqual('JMS67804', seq.next())
+        self.assertEqual('JMS67805', seq.next())
+        self.assertEqual('JMS67806', seq.next())
+        self.assertEqual('JMS67807', seq.next())
+        self.assertEqual('JMS67808', seq.next())
+        self.assertEqual('JMS67809', seq.next())
+        self.assertEqual('JMS67810', seq.next())
+        self.assertEqual('JMS67811', seq.next())
+        self.assertEqual('JMS67812', seq.next())
+
+        for i in range(90):
+            seq.next();
+        self.assertEqual('JMS678103', seq.next())
+    
+    def testNotPlaceHolder(self):
+        seq = Sequence("JMS678");
+        self.assertEqual('JMS6781', seq.next())
+        for i in range(100):
+            seq.next();
+        self.assertEqual('JMS678102', seq.next())
+
+
         
     def aaatestUnknownLoopName(self):
         edi = x12edi.createEdi(self.x12ediData);
         lxloop = edi.fetchSubNodes('LX')[0];
         locations = "XXX/HI*DR/01:02" 
-        self.assertIsNone(edi2csv1.fetchValueWithDefault(locations, lxloop));
+        self.assertIsNone(fetchValueWithDefault(locations, lxloop));
         
         
 if __name__ == "__main__":
