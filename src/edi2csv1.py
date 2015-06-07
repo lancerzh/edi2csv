@@ -6,13 +6,15 @@ Created on May 22, 2015
 
 import ConfigParser;
 import csv;
+import argparse;
+import os;
+
 from re import match, search
 from string import Template;
 from datetime import date;
 
 import x12edi;
 
-x12file = "extras/testdata/RHPPAI_0505151403_3.txt";
 x12ediData = None;
 
 class Sequence():
@@ -110,6 +112,24 @@ def proc():
     return (title, data, ifOutput);
 
 if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description='Extract X12 EDi 837 file to csv file.');
+    parser.add_argument('-edi', metavar='inputfile', help='input edi 837 file', required=True)
+    parser.add_argument('-cfg', metavar='configfile', help='config file', required=True)
+    parser.add_argument('-csv', metavar='csvfile', help='output csv file', required=True)
+    
+    args = parser.parse_args();
+    
+    if not os.path.exists(args.edi):
+        print "input edi file is not exist. exit..."
+        exit;
+    if not os.path.exists(args.cfg):
+        print "config file is not exist. exit..."
+        exit;
+
+    x12file = args.edi;
+    cfgFile = args.cfg;
+    csvfile = args.csv;
+
     with open(x12file, 'rb') as edifile:
         x12ediData = edifile.read();
         edifile.close();
@@ -117,7 +137,7 @@ if __name__ == '__main__':
     
     config = ConfigParser.RawConfigParser()
     config.optionxform = str
-    config.read('to_reliant_csv.ini');
+    config.read(cfgFile);
                 
     eachby = config.get('main', 'eachby');
     
@@ -130,7 +150,7 @@ if __name__ == '__main__':
     (title, data, ifOutput) = proc();
     
     
-    with open('out.csv', 'wb') as csvfile:
+    with open(csvfile, 'wb') as csvfile:
         spamwriter = csv.writer(csvfile, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
         row = []
         for index, ifo in enumerate(ifOutput) :
