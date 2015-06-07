@@ -21,7 +21,6 @@ class Sequence():
         self.variables = {}
         matchObj = search(r'(\${.*})', template);
         if matchObj != None :
-            print matchObj.group(1)
             (fn, para) = matchObj.group(1).strip('${} ').split(',', 2);
             if fn == 'today':
                 self.variables['today'] = date.today().strftime(para.strip('[ \'"]'));
@@ -38,11 +37,6 @@ class Sequence():
     def next(self):
         self.count += 1;
         self.variables['count'] = self.count;
-        '''
-        print self.prefix
-        print self.variables;
-        print self.prefix % self.variables
-        '''
         return self.prefix % self.variables;
 
 
@@ -69,19 +63,8 @@ def fetchValueWithDefault(location, loop, msg = ''):
                 if defaultValue == None :
                     print "**** field name" + msg;
                     print location;
-                    #print ie.msg;                
+                    print enfe;                
                 return defaultValue;
-        '''
-        except IndexError  as ie:
-            if len(ls) > 0:
-                continue;
-            else :
-                if defaultValue == None :
-                    print "**** field name" + msg;
-                    print location;
-                    #print ie.msg;                
-                return defaultValue;
-                '''
 
 def proc():
     myseq = {}
@@ -111,10 +94,6 @@ def proc():
         for index, (fieldname, location) in enumerate(fields) :
             if match(r'\$', location):
                 t = Template(location)
-                '''
-                for i in range(index):
-                    print title[i], myvars[title[i]]
-                    '''
                 value = t.substitute(myvars);
             elif len(location.strip()) > 0:
                 value = fetchValueWithDefault(location, loop, fieldname);
@@ -148,9 +127,6 @@ if __name__ == '__main__':
     seqItems = {}
     seqItems['prefix'] = config.get('sequence', 'prefix');
     seqItems['match'] = config.get('sequence', 'match');
-
-
-    print seqItems;
     
     (title, data, ifOutput) = proc();
     
