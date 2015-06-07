@@ -61,7 +61,8 @@ def fetchValueWithDefault(location, loop, msg = ''):
         try :
             value = loop.getValue(oneLocation);
             return value;
-        except IndexError as ie:
+
+        except x12edi.ElementNotFoundException as enfe :
             if len(ls) > 0:
                 continue;
             else :
@@ -70,6 +71,17 @@ def fetchValueWithDefault(location, loop, msg = ''):
                     print location;
                     #print ie.msg;                
                 return defaultValue;
+        '''
+        except IndexError  as ie:
+            if len(ls) > 0:
+                continue;
+            else :
+                if defaultValue == None :
+                    print "**** field name" + msg;
+                    print location;
+                    #print ie.msg;                
+                return defaultValue;
+                '''
 
 def proc():
     myseq = {}

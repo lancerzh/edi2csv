@@ -177,24 +177,14 @@ class EdiDocNode :
                 if seg.startswith(l.segmentPattern) :
                     try :
                         return l.getValue(seg);
-                    except IndexError as ie:
-                        ie.msg = self;
-                        raise;
+                    except IndexError:
+                        raise ElementNotFoundException(location, self, 'Not Found Element');
             else :
-                ''' TODO: should be return Notfound'''
-                raise IndexError;
+                raise ElementNotFoundException(location, self, 'Not Found Segment');
         elif l.hierarch < self.hierarch:
             return self.parent.getValue(location);
         else : # l.hierarch > self.hierarch 
-            print 'not found element at: ' + location 
-            '''
-            hl20 = self.getParent('HL:20')
-            if hl20 :
-                hl20.showme() 
-            TODO: ADD NOTFOUND EXCEPTION 
-            sometime LOOP hierarch absent, should be return NotFound 
-            '''
-            raise IndexError;
+            raise ElementNotFoundException(location, self, 'Not Found Loop');
         
     def setValue(self, value, location, method='REPLACE'):
         l = ValueLocator(location);
@@ -224,14 +214,19 @@ class EdiDocNode :
         return segs;
     
     def showme(self):
+        print self.__str__()
+        
+    def __str__(self):
+        output = '';
         for l in self.body :
-            print '  ' * self.deep + l;
+            output += '  ' * self.deep + l + '\n';
         if len(self.children) > 0 :
             for c in self.children:
-                c.showme();
+                output += c.__str__();
         if len(self.tail) > 0 :
             for l in self.tail :
-                print '  ' * self.deep + l;
+                output += '  ' * self.deep + l;
+        return output
         
     def traverse(self):
         queue = [];
@@ -263,8 +258,7 @@ class EdiDocNode :
             if line.startswith(position.upper()):
                 self.body.insert(length - i, segment)
                 break;
-                
-    
+
     @property
     def header(self):
         return self.body[0];
@@ -303,8 +297,8 @@ class ValueLocator:
     ''' this class proc value location description such like 'CLM/HCP/03-03'
     '''
     def __init__(self, location):
-        (hn, lineHeader, position)  = location.upper().split('/', 2);
         self.location = location;
+        (hn, lineHeader, position)  = self.location.upper().split('/', 2);
         self.hierarch = HierarchLocator(hn);
         self.segmentPattern = lineHeader;
         
@@ -313,18 +307,16 @@ class ValueLocator:
         
     def getValue(self, segment):
         elements = segment.strip('~').split(__ELEMENT_SEPARATOR__);
-        if not self.hasSubElement() :
-            return elements[self.elementPos];
-        else :
-            try :
-                ''' sub elements maybe is empty
-                '''
+        try :
+            ''' element and sub elements maybe is empty
+            '''
+            if not self.hasSubElement() :
+                return elements[self.elementPos];
+            else :
                 subEles = elements[self.elementPos].split(self.subEleSep);
                 return subEles[self.subElementPos - 1]
-            except IndexError as ie:
-                ie.msg = segment;
-                raise;
-            
+        except IndexError:
+            raise ;            
     def setValue(self, value, segment, method = 'REPLACE', sep = ','):
         words = segment.strip(__SEGMENT_TERMINATION__).split(__ELEMENT_SEPARATOR__);
         if method == 'APPEND':
@@ -361,7 +353,10 @@ class ValueLocator:
 
 
 class ElementNotFoundException(Exception):
-    def __init__(self, value):
-        self.value = value
+    def __init__(self, locator, node, msg):
+        Exception.__init__(self);
+        self.locator = locator;
+        self.docNode = node;
+        self.msg = msg;
     def __str__(self):
-        return repr(self.value)
+        return self.msg + " '" + self.locator + "' in: \n" + self.docNode.__str__()
