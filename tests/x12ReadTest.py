@@ -172,13 +172,11 @@ class TestEdiData(unittest.TestCase):
                 print '  ' * node.deep, node.name,":", node.parent,":", len(node.children), node.header
             else :
                 print '  ' * node.deep, node.name,":", node.parent.name,":", len(node.children), node.header
-            #print node.dump();
-            pass
-        '''
-        for l in  edi.isaNode.dump() :
-            print l;
-        '''
-        
+            pass      
+        print edi.dump();
+        print edi.dump('  ')  
+        print edi.dump('', False)  
+
     
     def testNodeId(self):
         edi = x12edi.createEdi(self.x12ediData);

@@ -46,7 +46,7 @@ def recalc_CLM_HCP(clm):
 
 def replace_SE_SEG_NUMBER(st):
     valueLocator = x12edi.ValueLocator('ST/SE/01')
-    loopLength = len(st.dump())
+    loopLength = st.segmentLength();
     st.tail[-1] = valueLocator.setValue(str(loopLength), st.tail[-1])
 
 
@@ -123,7 +123,7 @@ def proc(template, csvdb, config):
     
     replaceSubmitterReceiver(ediTemplate, config)      
             
-    return template.isaNode.dump();
+    return template;
 
 def check(config):
     reInsert = r'insert\s+([\'"]?\S+~[\'"]?)\s+after\s+(\S+)';
@@ -146,16 +146,12 @@ def check(config):
         if matchObj != None:
             template = matchObj.group(1).strip(r'[\'" ]')
             locator = matchObj.group(2)
-            #print template, locator
-            #actions.append(InsertAction(template, locator))
             config.set('insert segment after', locator, template);
             continue;
         matchObj = match(reSetvalue, v);
         if matchObj != None:
-            #print v
             template = matchObj.group(1).strip(r'[\$\{\}\s]')
             locator = matchObj.group(2)
-            #actions.append(ReplaceAction(template, locator))
 
             config.set('replace element', locator, template);
             continue;
@@ -168,13 +164,6 @@ def check(config):
         else :
             
             pass
-        '''
-        if match(reText, v):
-        if match(reCsv, v):
-        '''
-
-    pass
-
 
     
 if __name__ == '__main__':
@@ -194,11 +183,10 @@ if __name__ == '__main__':
         csvfile.close();
 
     
-    r = proc(ediTemplate, csvDb, config);
-    print ediTemplate.isaNode;
+    result = proc(ediTemplate, csvDb, config);
+    print result.dump('  ', cr=True);
 
     with open('result.txt', 'w') as outputfile:
-        for line in r :
-            outputfile.write(line+'\n');
+        outputfile.write(result.dump(cr=True));
         outputfile.close();
     pass

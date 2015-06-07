@@ -146,6 +146,9 @@ class EdiDoc :
     def fetchSubNodes(self, loopName):
         return self.isaNode.fetchSubNodes(loopName);
     
+    def dump(self, indent='', cr=True):
+        return self.isaNode.dump(indent, cr)
+    
 
 class EdiDocNode :
     ''' This class present a document node
@@ -204,26 +207,31 @@ class EdiDocNode :
     
     def appendValue(self, value, location):
         return self.setValue(value, location, 'APPEND');
-        
-    def dump(self):
-        segs = [];
-        segs += self.body;
+    
+    def segmentLength(self):
+        segs = len(self.body)
         for c in self.children :
-            segs = segs + c.dump();
-        segs += self.tail;
+            segs += c.segmentLength();
+        segs += len(self.tail);
         return segs;
-        
-    def __str__(self):
+    
+    def dump(self, indent='', cr=True):
+        tailCR = '\n'
+        if cr == False:
+            tailCR = ''
         output = '';
         for l in self.body :
-            output += '  ' * self.deep + l + '\n';
+            output += indent * self.deep + l + tailCR;
         if len(self.children) > 0 :
             for c in self.children:
-                output += c.__str__();
+                output += c.dump(indent, cr);
         if len(self.tail) > 0 :
             for l in self.tail :
-                output += '  ' * self.deep + l;
+                output += indent * self.deep + l + tailCR;
         return output
+
+    def __str__(self):
+        return self.dump('  ', True);
         
     def traverse(self):
         queue = [];

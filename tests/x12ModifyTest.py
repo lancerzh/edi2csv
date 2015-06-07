@@ -25,15 +25,6 @@ class Test(unittest.TestCase):
     def tearDown(self):
         pass
     
-    def testSE(self):
-        edi = x12edi.createEdi(self.x12ediData);
-        sts = edi.fetchSubNodes('ST');
-        for st in sts:
-            print len(st.dump())
-            print st.tail
-    
-      
-
     def testTemplete(self):
         template = Template('NTE*ADD*${l},${m}~');
         mymap = {'l':'10', 'm':'20'};
