@@ -5,6 +5,7 @@ Created on May 22, 2015
 '''
 
 import ConfigParser;
+import csv;
 from re import match, search
 from string import Template;
 from datetime import date;
@@ -108,8 +109,6 @@ def proc():
     
     return (title, data, ifOutput);
 
-
-
 if __name__ == '__main__':
     with open(x12file, 'rb') as edifile:
         x12ediData = edifile.read();
@@ -130,17 +129,20 @@ if __name__ == '__main__':
     
     (title, data, ifOutput) = proc();
     
-    row = []
-    for index, ifo in enumerate(ifOutput) :
-        if ifo != '-':
-            row.append(title[index]);
-    print ', '.join(row);
-
-    for aLine in data :
+    
+    with open('out.csv', 'wb') as csvfile:
+        spamwriter = csv.writer(csvfile, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
         row = []
         for index, ifo in enumerate(ifOutput) :
             if ifo != '-':
-                row.append(aLine[index]);
-        print ', '.join(row);
-
+                row.append(title[index]);
+        spamwriter.writerow(row);
+        
+        for aLine in data :
+            row = []
+            for index, ifo in enumerate(ifOutput) :
+                if ifo != '-':
+                    row.append(aLine[index]);
+            spamwriter.writerow(row);
+        
     pass
