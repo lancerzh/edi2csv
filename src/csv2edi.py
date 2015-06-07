@@ -195,7 +195,7 @@ if __name__ == '__main__':
 
     
     r = proc(ediTemplate, csvDb, config);
-    ediTemplate.isaNode.showme();
+    print ediTemplate.isaNode;
 
     with open('result.txt', 'w') as outputfile:
         for line in r :

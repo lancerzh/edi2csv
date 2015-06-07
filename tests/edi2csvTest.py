@@ -109,14 +109,14 @@ class Test(unittest.TestCase):
         self.assertEqual('JMS67811', seq.next())
         self.assertEqual('JMS67812', seq.next())
 
-        for i in range(90):
+        for i in range(12, 102):
             seq.next();
         self.assertEqual('JMS678103', seq.next())
     
     def testNotPlaceHolder(self):
         seq = Sequence("JMS678");
         self.assertEqual('JMS6781', seq.next())
-        for i in range(100):
+        for i in range(0, 100):
             seq.next();
         self.assertEqual('JMS678102', seq.next())
 

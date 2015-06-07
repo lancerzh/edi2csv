@@ -212,9 +212,6 @@ class EdiDocNode :
             segs = segs + c.dump();
         segs += self.tail;
         return segs;
-    
-    def showme(self):
-        print self.__str__()
         
     def __str__(self):
         output = '';

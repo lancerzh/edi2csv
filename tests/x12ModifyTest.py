@@ -44,14 +44,14 @@ class Test(unittest.TestCase):
         edi = x12edi.createEdi(self.x12ediData);
         lx = edi.fetchSubNodes('LX')[0];
         clm = lx.getParent('CLM');
-        lx.showme();
-        clm.showme();
+        print lx;
+        print clm;
         lx.insert('NTE*ADD*${csv:l},${csv:m}~', 'K3');
         lx.insert('HCP*02*${csv:k}**RELIANT~', 'NTE*ADD');
         clm.insert("NTE*ADD*${csv:n}~", 'REF*EA');
         clm.insert("HCP*02***RELIANT~", 'HI');
-        lx.showme();
-        clm.showme();
+        print lx;
+        print clm;
         
     def testSetValue(self):
         node = x12edi.EdiDocNode(['LX*1~', 'SV1*HC:99443:::::PHYS/QHP TELEPHONE EVALUATION 21-30 MIN*80*UN*1***1~']);
