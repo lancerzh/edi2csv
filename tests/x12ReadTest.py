@@ -190,6 +190,27 @@ class TestEdiData(unittest.TestCase):
         self.assertEqual('3', edi.fetchSubNodes('HL:23')[0].id);
         self.assertEqual('134150427P00024', edi.fetchSubNodes('CLM')[0].id);
         self.assertEqual('1', edi.fetchSubNodes('LX')[0].id);
+        
+    def testExceptValue(self):
+        edi = x12edi.createEdi(self.x12ediData);
+        exampleLoop = edi.fetchSubNodes('LX')[12];
+        tsLoop = exampleLoop.getParent('ST');
+        print tsLoop;
+        try :
+            exampleLoop.getValue("LX/SV2/02-02");
+        except x12edi.ElementNotFoundException  as e:
+            print e;
+            self.assertTrue(e.msg.startswith('Not Found Element'))
+        try :
+            exampleLoop.getValue("LX/SV1/02-02");
+        except x12edi.ElementNotFoundException  as e:
+            print e;
+            self.assertTrue(e.msg.startswith('Not Found Segment'))
+        try :
+            exampleLoop.getValue("HL:23/NM1*IL/03");
+        except x12edi.ElementNotFoundException  as e:
+            print e;
+            self.assertTrue(e.msg.startswith('Not Found Loop'))
 
 
     def testSplit(self):
