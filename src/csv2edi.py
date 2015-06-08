@@ -6,6 +6,8 @@ Created on May 18, 2015
 
 from re import match, IGNORECASE
 import ConfigParser
+import argparse
+import os;
 
 import x12edi
 import csvwrapper
@@ -58,7 +60,7 @@ def replaceSubmitterReceiver(template, config):
             loops = template.fetchSubNodes(vl1.hierarch.levelName)
             for l in loops:
                 l.replaceValue(v, vl)
-                
+'''                
 class InsertAction:
     def __init__(self, segment, template):
         self.afterSegment = segment;
@@ -66,7 +68,7 @@ class InsertAction:
         
     def perform(self, loop):
         loop.insert(self.template, self.afterSegment);
-        
+'''
 
 def proc(template, csvdb, config):
     # do insert
@@ -76,7 +78,7 @@ def proc(template, csvdb, config):
         for loop in loops:
             loop.insert(v, segmentPattern);
         
-    lxLoop = template.fetchSubNodes("LX");
+    lxLoop = template.fetchSubNodes(config.get('main', 'deepestLoop'));
     for lx in lxLoop :
         conditions = []
         for (k, v) in config.items('keymap'):
@@ -129,9 +131,11 @@ def check(config):
     reInsert = r'insert\s+([\'"]?\S+~[\'"]?)\s+after\s+(\S+)';
     reSetvalue = r'setvalue\s+(\$\{csv:[\w]+\})\s+into (\S+)'
     reAppend = r'append\s+(\$\{csv:[\w]+\})\s+at\s+(\S+)'
+    '''
     reText = r'[\'"]?[^\$][\w]+[\'"]?'
     reVar = r'[\'"]?\$\{[\w]+\}[\'"]?'
     reCsv = r'[\'"]?\$\{csv:[\w]+\}[\'"]?'
+    '''
 
     config.add_section('insert segment after');
     config.add_section('replace element');
@@ -141,7 +145,7 @@ def check(config):
 
     for (k, v) in config.items('actions'):
         kint = int(k);
-        #print v
+        print kint, v
         matchObj = match(reInsert, v);
         if matchObj != None:
             template = matchObj.group(1).strip(r'[\'" ]')
@@ -162,26 +166,52 @@ def check(config):
             config.set('append element', locator, template);
             continue;
         else :
-            
-            pass
-
+            print 'err: unknown action'
+    
+    hierarhes = []
+    for (k, v) in config.items('keymap'):
+        hierarhes.append(x12edi.ValueLocator(k).hierarch);
+    hierarhes.sort();
+    #print hierarhes[-1].levelName;
+    config.set('main', 'deepestLoop', hierarhes[-1].levelName);
     
 if __name__ == '__main__':
-    config = ConfigParser.RawConfigParser()
-    config.read('from_reliant_csv.ini');
-    check(config);
-    ediTemplate = None;
-    ediTemplateFile = 'extras/testdata/RHPPAI_0505151403_3.txt';
-    with open(ediTemplateFile, 'rb') as edifile:
-        x12ediData = edifile.read();
-        ediTemplate = x12edi.createEdi(x12ediData);
-        edifile.close();
-    csvDb = None;
-    csvfilename = 'extras/testdata/JMS_RELIANT_I_20150505output.csv'
-    with open(csvfilename, 'rb') as csvfile:
-        csvDb = csvwrapper.CsvDatabase(csvfile, skip = 1);
-        csvfile.close();
+    
+    parser = argparse.ArgumentParser(description='Build an X12 EDi 837 file from a csv db file, base on an edi template file.');
+    parser.add_argument('-template', metavar='templatefile', help='edi template file', required=True)
+    parser.add_argument('-csv', metavar='csvfile', help='csv db file', required=True)
+    parser.add_argument('-cfg', metavar='configfile', help='config file', required=True)
+    parser.add_argument('-ediout', metavar='edioutfile', help='edi output file', required=True)
 
+    args = parser.parse_args();
+    
+    if not os.path.exists(args.template):
+        print "input edi template file is not exist. exit..."
+        exit;
+    if not os.path.exists(args.csv):
+        print "input csv db file is not exist. exit..."
+        exit;
+    if not os.path.exists(args.cfg):
+        print "config file is not exist. exit..."
+        exit;
+    
+    edi = None;
+
+
+    config = ConfigParser.RawConfigParser()
+    config.read(args.cfg);
+    check(config);
+    
+    ediTemplate = None;
+    with open(args.template, 'rb') as edifile:
+        ediTemplate = x12edi.createEdi(edifile.read());
+        edifile.close();
+    
+    csvDb = None;
+    csvskip = int(config.get('main', 'csvskipline'));
+    with open(args.csv, 'rb') as csvfile:
+        csvDb = csvwrapper.CsvDatabase(csvfile, skip = csvskip);
+        csvfile.close();
     
     result = proc(ediTemplate, csvDb, config);
     print result.dump('  ', cr=True);
