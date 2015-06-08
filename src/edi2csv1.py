@@ -15,8 +15,6 @@ from datetime import date;
 
 import x12edi;
 
-x12ediData = None;
-
 class Sequence():
     def __init__(self, template):
         self.count = 0;
@@ -56,60 +54,64 @@ def fetchValueWithDefault(location, loop, msg = ''):
         del ls[0];
         #print oneLocation
         try :
-            value = loop.getValue(oneLocation);
-            return value;
-
+            return loop.getValue(oneLocation);
         except x12edi.ElementNotFoundException as enfe :
             if len(ls) > 0:
                 continue;
             else :
                 if defaultValue == None :
-                    print "**** field name" + msg;
-                    print location;
-                    print enfe;                
+                    enfe.msg += " and do not set default value"
+                    raise
                 return defaultValue;
 
-def proc():
-    myseq = {}
-    seq = Sequence(seqItems.get('prefix'))
-    loops = edi.fetchSubNodes(seqItems.get('match').split('/')[0])
+def proc(edi, config):
+    eachby = config.get('main', 'eachby');
+    fields = config.items('csv field');
+    
+    seq = Sequence(config.get('sequence', 'prefix'))
+    seqMatch = config.get('sequence', 'match')
+    seqMap = {}
+    loops = edi.fetchSubNodes(seqMatch.split('/')[0])
+    print "total " + str(len(loops)) + " mapped ids"
     for loop in loops :
-        trueId = loop.getValue(seqItems.get('match'))
-        myseq[trueId] = seq.next();
+        trueId = loop.getValue(seqMatch)
+        seqMap[trueId] = seq.next();
+        print trueId + " map to " + seqMap[trueId];
     
-    title = [];
-    ifOutput = [];
-    
-    for (fieldname, location) in fields :
-        title.append(fieldname.strip('- '));
-        if not fieldname.startswith('-') :
-            ifOutput.append('+')
-        else :
-            ifOutput.append('-')
-
-    myvars = {}
-    data = []
     loops = edi.fetchSubNodes(eachby);
+    print "total ", str(len(loops)), eachby, " records."
+
+    varsDict = {}
+    data = []
+
     for loop in loops :
         row = []
-        trueId = loop.getValue(seqItems.get('match'))
-        myvars['sequence'] = myseq[trueId]
-        for index, (fieldname, location) in enumerate(fields) :
+        trueId = loop.getValue(seqMatch)
+        varsDict['sequence'] = seqMap[trueId]
+        for (fieldname, location) in fields :
             if match(r'\$', location):
                 t = Template(location)
-                value = t.substitute(myvars);
+                value = t.substitute(varsDict);
             elif len(location.strip()) > 0:
-                value = fetchValueWithDefault(location, loop, fieldname);
+                try :
+                    value = fetchValueWithDefault(location, loop, fieldname);
+                except x12edi.ElementNotFoundException as enfe:
+                    print "Field name:", fieldname;
+                    print enfe;                
+                    value = 'None'
+                    
             else :
+                # Do not give valueLocator
                 value = ''
             if value == None :
                 value = 'None'
-            row.append(value);
-            myvars[title[index]] = value;
+            if not fieldname.startswith('-') :
+                row.append(value);
+
+            varsDict[fieldname.strip('- ')] = value;
         data.append(row);
-        
-    
-    return (title, data, ifOutput);
+
+    return data;
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Extract X12 EDi 837 file to csv file.');
@@ -125,44 +127,32 @@ if __name__ == '__main__':
     if not os.path.exists(args.cfg):
         print "config file is not exist. exit..."
         exit;
+    
+    edi = None;
 
-    x12file = args.edi;
-    cfgFile = args.cfg;
-    csvfile = args.csv;
-
-    with open(x12file, 'rb') as edifile:
+    with open(args.edi, 'rb') as edifile:
         x12ediData = edifile.read();
         edifile.close();
-    edi = x12edi.createEdi(x12ediData);
+        edi = x12edi.createEdi(x12ediData);
     
     config = ConfigParser.RawConfigParser()
     config.optionxform = str
-    config.read(cfgFile);
+    config.read(args.cfg);
                 
-    eachby = config.get('main', 'eachby');
+    data = proc(edi, config);
     
-    fields = config.items('csv field');
-
-    seqItems = {}
-    seqItems['prefix'] = config.get('sequence', 'prefix');
-    seqItems['match'] = config.get('sequence', 'match');
-    
-    (title, data, ifOutput) = proc();
-    
-    
-    with open(csvfile, 'wb') as csvfile:
+    with open(args.csv, 'wb') as csvfile:
         spamwriter = csv.writer(csvfile, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
         row = []
-        for index, ifo in enumerate(ifOutput) :
-            if ifo != '-':
-                row.append(title[index]);
+        for (fieldname, location) in config.items('csv field') :
+            if not fieldname.startswith('-') :
+                row.append(fieldname.strip());
+        #print ','.join(row)
         spamwriter.writerow(row);
         
         for aLine in data :
-            row = []
-            for index, ifo in enumerate(ifOutput) :
-                if ifo != '-':
-                    row.append(aLine[index]);
-            spamwriter.writerow(row);
+            #print ','.join(aLine)
+            spamwriter.writerow(aLine);
         
+        csvfile.close();
     pass

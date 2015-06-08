@@ -32,7 +32,10 @@ class Test(unittest.TestCase):
         self.assertEqual('', fetchValueWithDefault(locations, lx));
         
         locations = "LX/SV2/02-2"
-        self.assertIsNone(fetchValueWithDefault(locations, lx));
+        try :
+            self.assertIsNone(fetchValueWithDefault(locations, lx));
+        except x12edi.ElementNotFoundException as e:
+            print e;
         
         locations = "LX/SV2/02-2 or ''"
         self.assertEqual('', fetchValueWithDefault(locations, lx));
@@ -63,7 +66,10 @@ class Test(unittest.TestCase):
         lx = x12edi.EdiDocNode(lines);
         
         locations = "LX/SV2/02-2 or LX/PWK/02-2" 
-        self.assertIsNone(fetchValueWithDefault(locations, lx));
+        try :
+            self.assertIsNone(fetchValueWithDefault(locations, lx));
+        except x12edi.ElementNotFoundException as e:
+            print e;
         
         locations = "LX/SV2/02-2 or LX/PWK/02-2 or ''"
         self.assertEqual('', fetchValueWithDefault(locations, lx));
@@ -77,7 +83,10 @@ class Test(unittest.TestCase):
         edi = x12edi.createEdi(self.x12ediData);
         lxloop = edi.fetchSubNodes('LX')[0];
         locations = "CLM/HI*DR/01:02" 
-        self.assertIsNone(fetchValueWithDefault(locations, lxloop));
+        try :
+            self.assertIsNone(fetchValueWithDefault(locations, lxloop));
+        except x12edi.ElementNotFoundException as e:
+            print e;
         
         locations = "CLM/HI*DR/01:02 or 'aaaa'" 
         self.assertEqual('aaaa', fetchValueWithDefault(locations, lxloop));
