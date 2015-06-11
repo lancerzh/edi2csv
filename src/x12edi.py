@@ -4,6 +4,7 @@ Created on May 18, 2015
 @author: lancer
 '''
 from re import match;
+from datetime import datetime;
 
 
 __SEGMENT_TERMINATION__ = '~'
@@ -312,14 +313,20 @@ class ValueLocator:
         
     def getValue(self, segment):
         elements = segment.strip('~').split(__ELEMENT_SEPARATOR__);
+        returnValue = None;
         try :
             ''' element and sub elements maybe is empty
             '''
             if not self.hasSubElement() :
-                return elements[self.elementPos];
+                returnValue = elements[self.elementPos];
             else :
                 subEles = elements[self.elementPos].split(self.subEleSep);
-                return subEles[self.subElementPos - 1]
+                returnValue = subEles[self.subElementPos - 1]
+            
+            if self.isDateValue() :
+                return datetime.strptime(returnValue, '%Y%m%d')
+            else :
+                return returnValue;
         except IndexError:
             raise ;            
     def setValue(self, value, segment, method = 'REPLACE', sep = ','):
@@ -351,6 +358,10 @@ class ValueLocator:
 
     def hasSubElement(self):
         return self.subElePos != '';
+    
+    def isDateValue(self):
+        segname = self.segmentPattern[0:3];
+        return (segname == 'DTP' and self.elementPos == 3 ) or (segname == 'DMG' and self.elementPos == 2 )
     
     @property
     def subElementPos(self):

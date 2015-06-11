@@ -13,9 +13,11 @@ import os;
 
 from re import match, search
 from string import Template;
-from datetime import date;
+from datetime import date, datetime;
 
 import x12edi;
+
+config = None;
 
 class Sequence():
     def __init__(self, template):
@@ -56,7 +58,12 @@ def fetchValueWithDefault(location, loop, msg = ''):
         del ls[0];
         #print oneLocation
         try :
-            return loop.getValue(oneLocation);
+            returnValue = loop.getValue(oneLocation);
+            if returnValue != None and isinstance(returnValue, date):
+                return datetime.strftime(returnValue, config.get('main', 'date format'))
+            else :
+                return returnValue
+                
         except x12edi.ElementNotFoundException as enfe :
             if len(ls) > 0:
                 continue;
@@ -66,7 +73,7 @@ def fetchValueWithDefault(location, loop, msg = ''):
                     raise
                 return defaultValue;
 
-def proc(edi, config):
+def proc(edi):
     eachby = config.get('main', 'eachby');
     fields = config.items('csv field');
     
@@ -141,7 +148,7 @@ if __name__ == '__main__':
     config.optionxform = str
     config.read(args.cfg);
                 
-    data = proc(edi, config);
+    data = proc(edi);
     
     with open(args.csv, 'wb') as csvfile:
         spamwriter = csv.writer(csvfile, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
