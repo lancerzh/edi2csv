@@ -5,7 +5,6 @@ Created on May 18, 2015
 '''
 import unittest
 import ConfigParser
-import os
 
 
 class Test(unittest.TestCase):
@@ -31,6 +30,18 @@ class Test(unittest.TestCase):
             print section
             for item in config.items(section):
                 print item
+                
+    def testDateFormat(self):
+        config = ConfigParser.RawConfigParser()
+        config.optionxform = str
+
+        config.read('to_reliant_csv.ini');
+        self.assertEqual("%m%d%Y", config.get('main', 'date format'));
+        try :
+            self.assertEqual(None, config.get('sequence', 'date format'));
+            self.fail("");
+        except :
+            pass
 
 if __name__ == "__main__":
     #import sys;sys.argv = ['', 'Test.testName']
