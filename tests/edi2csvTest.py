@@ -6,7 +6,7 @@ Created on May 28, 2015
 import unittest
 from datetime import date;
 
-from edi2csv1 import fetchValueWithDefault, Sequence
+from edi2csv import fetchValueWithDefault, Sequence
 import x12edi
 
 
