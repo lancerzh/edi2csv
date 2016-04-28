@@ -16,7 +16,7 @@ __INDEX_MAPPER__ = {}
 
 def __CREATE_INDEX_MAPPER__(rows):
     for i in range(rows):
-        firstPos = i / __CHAR_SEQ_LEN__;
+        firstPos = i // __CHAR_SEQ_LEN__;
         lastPos = i % __CHAR_SEQ_LEN__;
         key = '';
         if firstPos > 0 :
@@ -51,7 +51,7 @@ class CsvDatabase :
         self.db = [];
         if isinstance(data, str) :
             self.reader = csv.reader(io.StringIO(data), delimiter=',', quotechar='"', skipinitialspace=True);
-        elif isinstance(data, file) :
+        elif isinstance(data, io.IOBase) :
             self.reader = csv.reader(data, delimiter=',', quotechar='"', skipinitialspace=True);
         else :
             print("err: unknown data type!")

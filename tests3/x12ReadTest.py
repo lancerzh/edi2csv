@@ -19,7 +19,7 @@ class TestEdiData(unittest.TestCase):
 
 
     def setUp(self):
-        with open(x12file, 'rb') as edifile:
+        with open(x12file, 'r') as edifile:
             self.x12ediData = edifile.read();
             edifile.close();
 
@@ -176,7 +176,10 @@ class TestEdiData(unittest.TestCase):
         print(edi.dump());
         print(edi.dump('  '))  
         print(edi.dump('', False))  
-
+        
+    def testBug(self):
+        edi = x12edi.createEdi(self.x12ediData);
+        self.assertEqual('2', edi.fetchSubNodes('HL:22')[0].id);
     
     def testNodeId(self):
         edi = x12edi.createEdi(self.x12ediData);

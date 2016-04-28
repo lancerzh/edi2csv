@@ -17,7 +17,7 @@ class Test(unittest.TestCase):
 
 
     def setUp(self):
-        with open(x12file, 'rb') as edifile:
+        with open(x12file, 'r') as edifile:
             self.x12ediData = edifile.read();
             edifile.close();
             

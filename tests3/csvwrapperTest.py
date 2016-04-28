@@ -19,7 +19,7 @@ csvfilename = "extras/testdata/JMS_RELIANT_I_20150505output.csv";
 class Test(unittest.TestCase):
     
     def setUp(self):
-        with open(csvfilename, 'rb') as csvfile:
+        with open(csvfilename, 'r') as csvfile:
             self.csvDb = csvwrapper.CsvDatabase(csvfile, skip = 1);
         pass;
 

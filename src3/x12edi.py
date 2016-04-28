@@ -291,7 +291,21 @@ class HierarchLocator:
             self.levelName = locator;
             self.level = __LOOP_DEFINITION__[self.levelName][0];
             self.subLevel = None;
+        
+    def __str__(self):
+        r = [self.levelName, self.level]
+        if self.subLevel != None :
+            r.append(self.subLevel);
+        return ','.join(r)
 
+    def __eq__(self, other):
+        if self.subLevel is None or other.subLevel is None :
+            return self.level == other.level;
+        else :
+            return self.level == other.level and self.subLevel == other.subLevel;
+    
+    def __ge__(self, other):
+        return not self.__lt__(other);
     
     def __lt__(self,other):
         if self.level != other.level or self.subLevel is None or other.subLevel is None :
